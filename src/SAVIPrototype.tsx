@@ -21,7 +21,7 @@ import {
   Plus,
   ScanFace,
 } from "lucide-react";
-import { interpret, NLUResult } from "@/lib/nlu";
+import { interpret, NLUResult, generateReply } from "@/lib/nlu";
 
 /**
  * SAVI® — Prototipo interactivo de UI conversacional para integrar dentro de una app bancaria.
@@ -927,56 +927,80 @@ export default function SAVIPrototype() {
     return contacts.find((c) => c.name.toLowerCase().includes(n) || c.alias.toLowerCase().includes(n)) || null;
   };
 
-  const dispatchNLU = (res: NLUResult) => {
+  const dispatchNLU = async (res: NLUResult, userText?: string) => {
     switch (res.intent) {
       case "check_balance":
-        pushSavi(<p className="savi-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
+        {
+          const ack = await generateReply({ userText, result: res, balance });
+          pushSavi(<p>{ack}</p>);
+          pushSavi(<p className="savi-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
+        }
         return;
       case "collect":
-        pushSavi(
-          <CollectQR
-            initialAmount={res.amount ?? undefined}
-            initialConcept={res.concept ?? undefined}
-            autoGenerate={Boolean(res.amount && res.amount > 0)}
-          />
-        );
+        {
+          const ack = await generateReply({ userText, result: res, balance });
+          pushSavi(<p>{ack}</p>);
+          pushSavi(
+            <CollectQR
+              initialAmount={res.amount ?? undefined}
+              initialConcept={res.concept ?? undefined}
+              autoGenerate={Boolean(res.amount && res.amount > 0)}
+            />
+          );
+        }
         return;
       case "share_qr":
-        pushSavi(<CollectQR />);
+        {
+          const ack = await generateReply({ userText, result: res, balance });
+          pushSavi(<p>{ack}</p>);
+          pushSavi(<CollectQR />);
+        }
         return;
       case "send_money": {
         if (res.recipient) {
           const r = findContact(res.recipient);
           if (r) {
             setRecipient(r);
-            pushSavi(<p>Procediendo a transferir a <strong>{r.name}</strong>.</p>);
+            const ack = await generateReply({ userText, result: res, balance });
+            pushSavi(<p>{ack}</p>);
             if (res.concept) setConcept(res.concept);
             askAmount(r, res.amount ?? undefined);
             return;
           }
         }
+        const ack = await generateReply({ userText, result: res, balance });
+        pushSavi(<p>{ack}</p>);
         openTransfer();
         return;
       }
       case "add_contact":
+        {
+          const ack = await generateReply({ userText, result: res, balance });
+          pushSavi(<p>{ack}</p>);
+        }
         openTransfer();
         setShowNewContact(true);
         if (res.recipient) setNewName(res.recipient);
         return;
       case "help":
-        pushSavi(
-          <div>
-            <p>Puedo ayudarle con:</p>
-            <ul className="list-disc ml-5">
-              <li>Enviar dinero: "envía 200 a Ana por renta"</li>
-              <li>Consultar saldo: "mi saldo"</li>
-              <li>Cobrar con QR: "cobrar 300 tacos"</li>
-            </ul>
-          </div>
-        );
+        {
+          const ack = await generateReply({ userText, result: res, balance });
+          pushSavi(<p>{ack}</p>);
+          pushSavi(
+            <div>
+              <p>Puedo ayudarle con:</p>
+              <ul className="list-disc ml-5">
+                <li>Enviar dinero: "envía 200 a Ana por renta"</li>
+                <li>Consultar saldo: "mi saldo"</li>
+                <li>Cobrar con QR: "cobrar 300 tacos"</li>
+              </ul>
+            </div>
+          );
+        }
         return;
       default:
-        pushSavi(<p>No entendí. Pruebe: "transferir 200 a Ana" o "mi saldo".</p>);
+        const ack = await generateReply({ userText, result: res, balance });
+        pushSavi(<p>{ack}</p>);
         return;
     }
   };
@@ -1013,7 +1037,7 @@ export default function SAVIPrototype() {
       );
       return;
     }
-    dispatchNLU(res);
+    dispatchNLU(res, text);
   };
 
   // Render principal

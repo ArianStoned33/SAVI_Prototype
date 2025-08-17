@@ -161,3 +161,82 @@ function capitalize(s: string): string {
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
     .join(" ");
 }
+
+// ==============================
+// LLM short acknowledgement text
+// ==============================
+
+function fallbackReply(result: NLUResult, balance?: number): string {
+  switch (result.intent) {
+    case "check_balance":
+      return "Claro, con gusto le muestro su saldo.";
+    case "collect":
+      return "Claro, con gusto le ayudo a generar un QR de cobro. Aquí tiene:";
+    case "share_qr":
+      return "Claro, aquí tiene su QR para compartir:";
+    case "send_money": {
+      const amt = typeof result.amount === "number" && result.amount > 0 ? result.amount : null;
+      const who = result.recipient || "el destinatario";
+      const con = result.concept ? ` por ${result.concept}` : "";
+      return `Claro, le ayudo a transferir${amt ? ` ${amt.toLocaleString("es-MX", { style: "currency", currency: "MXN" })}` : ""} a ${who}${con}.`;
+    }
+    case "add_contact":
+      return "Claro, vamos a agregar un nuevo contacto.";
+    case "help":
+      return "Con gusto. Puedo ayudarle con lo siguiente:";
+    default:
+      return "No entendí. Puede intentar: 'transferir 200 a Ana' o 'mi saldo'.";
+  }
+}
+
+export async function generateReply(args: { userText?: string; result: NLUResult; balance?: number }): Promise<string> {
+  const { userText, result, balance } = args;
+  const base = fallbackReply(result, balance);
+  if (!GEMINI_API_KEY) return base;
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      GEMINI_MODEL
+    )}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+    const instruction = `Eres un asistente bancario en español (tono formal, claro y conciso). Tu tarea es generar UNA sola oración muy breve como acuse/confirmación contextual de la acción que el usuario realizará.
+Requisitos:
+- Solo texto plano (sin JSON ni markdown)
+- Una sola oración de 8–18 palabras
+- Español formal mexicano usando "usted"
+- No repitas el mensaje del usuario; confirma y contextualiza la acción
+- Si la intención es desconocida, invítelo a reformular en una sola oración
+
+Dispones de la siguiente información estructurada (result) y contexto adicional.
+`;
+
+    const content = {
+      role: "user",
+      parts: [
+        { text: `Mensaje del usuario: ${userText || "(no disponible)"}` },
+        { text: `Resultado NLU: ${JSON.stringify(result)}` },
+        { text: `Saldo aproximado: ${typeof balance === "number" ? balance : "(no disponible)"}` },
+        { text: `Ejemplos deseados:\n- check_balance -> "Claro, con gusto le muestro su saldo."\n- collect -> "Con gusto, genero su QR de cobro. Aquí tiene:"\n- share_qr -> "Claro, aquí tiene su QR para compartir:"\n- send_money -> "Con gusto, le ayudo a transferir $200.00 a Ana por renta."\n- add_contact -> "De acuerdo, agreguemos un nuevo contacto."\n- help -> "Con gusto, le indico cómo puedo ayudarle."` },
+      ],
+    } as const;
+
+    const body = {
+      systemInstruction: { role: "system", parts: [{ text: instruction }] },
+      contents: [content],
+      generationConfig: { temperature: 0.2, topP: 0.9, maxOutputTokens: 60 },
+    } as const;
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    const textOut: string = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
+    const trimmed = (textOut || "").trim();
+    if (!trimmed) return base;
+    // Enforce single line short response
+    return trimmed.split(/\r?\n/)[0].slice(0, 200);
+  } catch {
+    return base;
+  }
+}
