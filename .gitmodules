@@ -1,0 +1,3 @@
+[submodule "savi-app"]
+	path = savi-app
+	url = ./savi-app
