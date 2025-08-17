@@ -341,12 +341,13 @@ export default function SAVIPrototype() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    // auto scroll
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+    // auto scroll to last message
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, processing]);
 
   // En pantallas clave, llevar el foco al contenedor del chat para lectores de pantalla
   useEffect(() => {
@@ -1103,6 +1104,16 @@ export default function SAVIPrototype() {
 
           <div className="chat-shell">
             <ScrollArea className="chat-scroll" ref={scrollRef}>
+              <div className="chat-sticky-head" role="region" aria-label="Acciones rápidas">
+                <div className="flex items-center gap-2 justify-center">
+                  <Button size="sm" variant="outline" onClick={openCollect} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
+                    <QrCode className="h-4 w-4 mr-2" /> Cobrar con QR
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
+                    <Send className="h-4 w-4 mr-2" /> Transferir
+                  </Button>
+                </div>
+              </div>
               <div id="main-content" ref={chatLogRef} className="pr-2" role="log" aria-live="polite" aria-relevant="additions" tabIndex={-1}>
                 {messages}
                 {processing && (
@@ -1112,12 +1123,14 @@ export default function SAVIPrototype() {
                     </p>
                   </ChatBubble>
                 )}
+                <div ref={endRef} aria-hidden />
               </div>
             </ScrollArea>
 
             {/* Entrada de texto (opcional para demo); en producción, SAVI guía proactivamente */}
             <div className="chat-input" role="group" aria-label="Entrada libre (demo)">
               <Input
+                className="flex-1"
                 placeholder="Escriba un mensaje (demo)"
                 aria-label="Mensaje"
                 value={chatText}
