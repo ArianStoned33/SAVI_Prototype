@@ -36,8 +36,10 @@
   "eslintConfig": {
     "extends": [
       "react-app",
-      "react-app/jest"
-    ]
+      "react-app/jest",
+      "plugin:jsx-a11y/recommended"
+    ],
+    "plugins": ["jsx-a11y"]
   },
   "browserslist": {
     "production": [
@@ -53,6 +55,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17"
   }

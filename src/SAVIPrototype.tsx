@@ -17,12 +17,11 @@ import {
   Search,
   Send,
   Share2,
-  Smartphone,
-  User,
   X,
   Plus,
   ScanFace,
 } from "lucide-react";
+import { interpret, NLUResult } from "@/lib/nlu";
 
 /**
  * SAVI® — Prototipo interactivo de UI conversacional para integrar dentro de una app bancaria.
@@ -37,76 +36,6 @@ import {
  *
  * Nota: Front-end demo; no hay conexión real a SPEI.
  */
-
-// =====================
-// Design Tokens (muestra)
-// =====================
-const DesignTokens = () => (
-  <style>{`
-  :root {
-    /* Colores base */
-    --color-brand-primary: #0D47A1; /* color.brand.primary */
-    --color-text-primary: #1A1A1A;  /* color.text.primary */
-    --color-surface: #FFFFFF;       /* color.background.surface */
-    --color-success: #16A34A;       /* green-600 */
-    --color-warning: #B45309;       /* amber-700 */
-    --color-border: #E5E7EB;
-
-    /* Tipografía */
-    --font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-    --font-size-body: 16px;         /* font.size.body.md */
-    --font-weight-bold: 700;        /* font.weight.bold */
-
-    /* Espaciado y bordes */
-    --spacing-inset-md: 16px;       /* spacing.inset.md */
-    --spacing-stack-sm: 8px;        /* spacing.stack.sm */
-    --radius-interactive: 12px;     /* border.radius.interactive */
-    --shadow-1: 0 2px 4px rgba(0,0,0,0.08); /* shadow.elevation.1 */
-  }
-
-  .savi-surface { background: var(--color-surface); color: var(--color-text-primary); }
-  .savi-brand { color: var(--color-brand-primary); }
-  .savi-button-primary { background: var(--color-brand-primary); color: white; }
-  .savi-button-primary:focus-visible { outline: 2px solid #104E8B; outline-offset: 2px; }
-  .savi-chip { border: 1px solid var(--color-border); border-radius: 999px; padding: 6px 10px; }
-  .savi-chat-bubble-savi { background: #F3F7FF; border: 1px solid #DFE9FF; }
-  .savi-chat-bubble-user { background: #F9FAFB; border: 1px solid #E5E7EB; }
-  .savi-success { color: var(--color-success); }
-  .savi-warning { color: var(--color-warning); }
-  .savi-mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
-  .savi-text-strong { color: #101010; }
-
-  /* Animaciones */
-  @keyframes spinSlow { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
-  .savi-spin { animation: spinSlow 1.2s linear infinite; }
-  @keyframes pulseRing { 0%{ box-shadow: 0 0 0 0 rgba(13,71,161,.3);} 70%{ box-shadow: 0 0 0 12px rgba(13,71,161,0);} 100%{ box-shadow: 0 0 0 0 rgba(13,71,161,0);} }
-  .pulse { animation: pulseRing 1.2s ease-out infinite; }
-
-  /* Accesibilidad */
-  .quick-reply:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
-
-  /* Pantalla de confirmación */
-  .savi-confirm-header { display:flex; align-items:center; gap:12px; }
-  .savi-confirm-amount { font-size: 28px; font-weight: 800; }
-  .savi-kv { display:grid; grid-template-columns: 160px 1fr; row-gap: 6px; column-gap: 12px; }
-
-  /* Overlay de éxito (pantalla verde) */
-  @keyframes overlayIn { from { opacity: 0; transform: scale(.98);} to { opacity: 1; transform: scale(1);} }
-  .success-overlay { position: fixed; inset: 0; background: rgba(22,163,74,.96); color: #fff; display:flex; align-items:center; justify-content:center; z-index: 50; animation: overlayIn .2s ease-out; }
-  .success-wrap { text-align:center; padding: 24px; }
-  .success-title { font-size: 28px; font-weight: 800; }
-  .success-sub { opacity: .95; margin-top: 6px; }
-
-  /* Layout base del demo */
-  .demo-wrapper { max-width: 1200px; margin: 0 auto; padding: 24px; }
-  .app-shell { display:grid; grid-template-columns: 340px 1fr; gap: 24px; }
-  .chat-shell { height: 640px; display:flex; flex-direction: column; }
-  .chat-scroll { flex:1; border: 1px solid var(--color-border); border-radius: 16px; padding: 12px; }
-  .chat-input { display:flex; gap: 8px; margin-top: 12px; }
-
-  @media (max-width: 980px) { .app-shell { grid-template-columns: 1fr; } }
-  `}</style>
-);
 
 // =====================
 // Utilidades
@@ -175,7 +104,7 @@ function AppTopBar({ onOpenSAVI }: { onOpenSAVI: () => void }) {
   return (
     <div className="flex items-center justify-between p-4 border rounded-2xl bg-white shadow-sm" role="banner">
       <div className="flex items-center gap-3">
-        <Smartphone className="h-5 w-5 savi-brand" aria-hidden />
+        <img src="/logo192.png" alt="SAVI" className="h-6 w-6" />
         <div className="text-sm leading-tight">
           <div className="font-semibold">{BANK_NAME}</div>
           <div className="text-xs text-muted-foreground">App bancaria — demo</div>
@@ -205,13 +134,31 @@ function ChatBubble({ from, children }: { from: "savi" | "user"; children: React
 
 function QuickReplies({ options, onPick }: { options: { id: string; label: string }[]; onPick: (id: string) => void }) {
   return (
-    <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Opciones rápidas">
+    <div className="flex flex-wrap gap-2 mt-2" role="group" aria-label="Opciones rápidas">
       {options.map((opt) => (
         <button
           key={opt.id}
+          type="button"
           className="quick-reply savi-chip text-sm"
           onClick={() => onPick(opt.id)}
           aria-label={opt.label}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onPick(opt.id);
+            }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              const container = e.currentTarget.parentElement;
+              if (!container) return;
+              const items = Array.from(container.querySelectorAll('button')) as HTMLElement[];
+              const idx = items.indexOf(e.currentTarget);
+              const nextIdx = (e.key === 'ArrowRight' || e.key === 'ArrowDown')
+                ? (idx + 1) % items.length
+                : (idx - 1 + items.length) % items.length;
+              items[nextIdx]?.focus();
+            }
+          }}
         >
           {opt.label}
         </button>
@@ -223,9 +170,30 @@ function QuickReplies({ options, onPick }: { options: { id: string; label: strin
 // Selector de monto con estado local para evitar el problema de inputs "congelados" en burbujas
 function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipientName?: string; initialValue?: number; onConfirm: (value: number) => void; }) {
   const [local, setLocal] = useState(initialValue ? String(initialValue) : "");
+  const [touched, setTouched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const chips = [100, 200, 500, 1000];
 
   const parseValue = () => Number(String(local).replace(/[^0-9.]/g, ""));
+  const formatValue = (raw: string) => {
+    const clean = String(raw).replace(/[^0-9.]/g, "");
+    if (!clean) return "";
+    const [intPart, decPart] = clean.split(".");
+    const intNum = Number(intPart || "0");
+    const grouped = intNum.toLocaleString("es-MX");
+    if (decPart !== undefined) {
+      return `${grouped}.${decPart.slice(0, 2)}`;
+    }
+    return grouped;
+  };
+
+  useEffect(() => {
+    const val = parseValue();
+    if (touched) {
+      if (!val || val <= 0) setError("Ingrese un monto mayor a $0.00 MXN.");
+      else setError(null);
+    }
+  }, [local, touched]);
 
   return (
     <div>
@@ -239,15 +207,21 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
           placeholder="$0.00"
           className="max-w-[200px]"
           value={local}
-          onChange={(e) => setLocal(e.target.value)}
+          onChange={(e) => setLocal(formatValue(e.target.value))}
+          onBlur={() => setTouched(true)}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? "amount-error" : undefined}
         />
-        <Button className="savi-button-primary" onClick={() => onConfirm(parseValue())} aria-label="Continuar" disabled={!(parseValue() > 0)}>
+        <Button className="savi-button-primary" onClick={() => { const v = parseValue(); setTouched(true); if (v > 0) onConfirm(v); }} aria-label="Continuar" disabled={!(parseValue() > 0)}>
           Continuar <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
+      {error && (
+        <div id="amount-error" className="text-xs text-red-600 mt-1" role="status" aria-live="polite">{error}</div>
+      )}
       <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Montos rápidos">
         {chips.map((v) => (
-          <button key={v} className="quick-reply savi-chip text-sm" onClick={() => setLocal(String(v))} aria-label={`Seleccionar ${currency(v)}`}>
+          <button key={v} className="quick-reply savi-chip text-sm" onClick={() => { setLocal(v.toLocaleString("es-MX")); setTouched(true); setError(null); }} aria-label={`Seleccionar ${currency(v)}`}>
             {currency(v)}
           </button>
         ))}
@@ -257,10 +231,17 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
 }
 
 // Flujo de cobro con QR
-function CollectQR({ onClose }: { onClose?: () => void }) {
-  const [amt, setAmt] = useState("");
-  const [conc, setConc] = useState("");
+function CollectQR({ onClose, initialAmount, initialConcept, autoGenerate }: { onClose?: () => void; initialAmount?: number; initialConcept?: string; autoGenerate?: boolean; }) {
+  const [amt, setAmt] = useState(initialAmount != null ? String(initialAmount) : "");
+  const [conc, setConc] = useState(initialConcept || "");
   const [payload, setPayload] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (autoGenerate && initialAmount && initialAmount > 0) {
+      const p = buildPaymentPayload({ amount: initialAmount, concept: initialConcept });
+      setPayload(p);
+    }
+  }, [autoGenerate, initialAmount, initialConcept]);
 
   const onGenerate = () => {
     const value = Number(String(amt).replace(/[^0-9.]/g, ""));
@@ -338,12 +319,13 @@ export default function SAVIPrototype() {
   const [authed, setAuthed] = useState(false);
   const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [contacts, setContacts] = useState(initialContacts);
+  const [concept, setConcept] = useState<string>("");
   const [recipient, setRecipient] = useState<typeof contacts[number] | null>(null);
   const [search, setSearch] = useState("");
   const [amount, setAmount] = useState<string>("");
-  const [concept, setConcept] = useState<string>("");
   const [cep, setCEP] = useState<string>("");
   const [processing, setProcessing] = useState(false);
+  const [online, setOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   // Autenticación
   const [pinInput, setPinInput] = useState("");
@@ -354,11 +336,39 @@ export default function SAVIPrototype() {
   const [newBank, setNewBank] = useState("");
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
+  const [chatText, setChatText] = useState("");
+  const [pendingNLU, setPendingNLU] = useState<NLUResult | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chatLogRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    // Mensajes iniciales
-    if (messages.length === 0) {
+    // auto scroll
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
+  // En pantallas clave, llevar el foco al contenedor del chat para lectores de pantalla
+  useEffect(() => {
+    if (step === 'transfer.confirm' || step === 'success') {
+      chatLogRef.current?.focus();
+    }
+  }, [step]);
+
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!initializedRef.current && messages.length === 0) {
+      initializedRef.current = true;
       pushSavi(
         <>
           <p className="savi-text-strong">Bienvenido a SAVI, su asistente de pagos seguro.</p>
@@ -382,13 +392,7 @@ export default function SAVIPrototype() {
         </>
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    // auto scroll
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages.length]);
 
   const pushSavi = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="savi">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
@@ -418,6 +422,11 @@ export default function SAVIPrototype() {
         </>
       );
       setStep("menu");
+      if (pendingNLU) {
+        const toRun = pendingNLU;
+        setPendingNLU(null);
+        setTimeout(() => dispatchNLU(toRun), 300);
+      }
     }, 700);
   };
 
@@ -457,7 +466,9 @@ export default function SAVIPrototype() {
         <Alert className="mt-2" role="alert">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>NIP incorrecto</AlertTitle>
-          <AlertDescription>Inténtelo de nuevo. {pinAttempts + 1 >= 3 ? 'Por seguridad, use biometría o espere 30s.' : ''}</AlertDescription>
+          <AlertDescription>
+            Inténtelo de nuevo. {pinAttempts + 1 >= 3 ? 'Por seguridad, use biometría o espere 30s.' : ''}
+          </AlertDescription>
         </Alert>
       );
     }
@@ -584,11 +595,12 @@ export default function SAVIPrototype() {
     }
   };
 
-  const askAmount = (r: typeof contacts[number]) => {
+  const askAmount = (r: typeof contacts[number], initial?: number) => {
     setStep("transfer.amount");
     pushSavi(
       <AmountSelector
         recipientName={r.name}
+        initialValue={initial}
         onConfirm={(value) => {
           if (!recipient) setRecipient(r);
           if (!value || value <= 0) { pushSavi(<p>Ingrese un monto válido mayor a $0.00 MXN.</p>); return; }
@@ -601,23 +613,38 @@ export default function SAVIPrototype() {
 
   const askConcept = (value: number) => {
     setStep("transfer.concept");
+    const handleSubmit = (e?: React.FormEvent) => {
+      e?.preventDefault();
+      reviewAndConfirm(value);
+    };
+
     pushSavi(
       <>
         <p>¿Desea agregar un concepto de pago? (opcional)</p>
-        <div className="mt-2 flex items-center gap-2" role="group" aria-label="Agregar concepto de pago (opcional)">
-          <Input
-            placeholder="Ej. Comida"
-            value={concept}
-            onChange={(e) => setConcept(e.target.value)}
-            aria-label="Concepto de pago"
-          />
-          <Button variant="secondary" onClick={() => reviewAndConfirm(value)} aria-label="Omitir">
-            Omitir
-          </Button>
-          <Button className="savi-button-primary" onClick={() => reviewAndConfirm(value)} aria-label="Continuar">
-            Continuar <ChevronRight className="ml-1 h-4 w-4" />
-          </Button>
-        </div>
+        <form onSubmit={handleSubmit} className="w-full">
+          <div className="mt-2 flex items-center gap-2" role="group" aria-label="Agregar concepto de pago (opcional)">
+            <Input
+              placeholder="Ej. Comida"
+              value={concept}
+              onChange={(e) => setConcept(e.target.value)}
+              aria-label="Concepto de pago"
+              className="flex-1"
+            />
+            <Button variant="secondary" type="button" onClick={() => {
+              setConcept("");
+              reviewAndConfirm(value);
+            }} aria-label="Omitir">
+              Omitir
+            </Button>
+            <Button 
+              className="savi-button-primary" 
+              type="submit"
+              aria-label="Continuar"
+            >
+              Continuar <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </form>
       </>
     );
   };
@@ -656,6 +683,68 @@ export default function SAVIPrototype() {
   };
 
   const authorize = (value: number) => {
+    // Validación de fondos insuficientes antes de autorizar
+    if (balance < value) {
+      setStep("error.insufficient");
+      pushSavi(
+        <>
+          <Alert className="mt-2" role="alert">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Fondos insuficientes</AlertTitle>
+            <AlertDescription>
+              Su saldo disponible es de <strong>{currency(balance)}</strong> y no es suficiente para enviar <strong>{currency(value)}</strong>.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-2 flex items-center gap-2" role="group" aria-label="Opciones ante fondos insuficientes">
+            <Button
+              className="savi-button-primary"
+              onClick={() => {
+                const available = Math.max(0, Number(balance.toFixed(2)));
+                if (available <= 0) { pushSavi(<p>No cuenta con saldo disponible para enviar.</p>); return; }
+                pushUser("Enviar saldo disponible");
+                reviewAndConfirm(available);
+              }}
+              aria-label="Enviar saldo disponible"
+              disabled={balance <= 0}
+            >
+              Enviar saldo disponible
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                pushUser("Intentar con otro monto");
+                if (recipient) { askAmount(recipient); } else if (contacts[0]) { askAmount(contacts[0]); }
+              }}
+              aria-label="Intentar con otro monto"
+            >
+              Intentar con otro monto
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => { pushUser("Cancelar"); pushSavi(<p>Operación cancelada.</p>); }}
+              aria-label="Cancelar"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </>
+      );
+      return;
+    }
+
+    if (!online) {
+      pushSavi(
+        <Alert className="mt-2" role="alert">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Sin conexión</AlertTitle>
+          <AlertDescription>
+            No es posible enviar mientras no haya conexión. Verifique su red e inténtelo de nuevo.
+          </AlertDescription>
+        </Alert>
+      );
+      return;
+    }
+
     setStep("transfer.authorize");
     pushSavi(
       <>
@@ -664,8 +753,29 @@ export default function SAVIPrototype() {
         </p>
       </>
     );
-    // Simulación de autorización
-    setTimeout(() => doProcess(value), 700);
+    // Simulación de autorización + posibles fallos de red/timeout antes del procesamiento
+    setTimeout(() => {
+      const shouldFail = Math.random() < 0.25; // 25% de probabilidad de fallo
+      if (shouldFail) {
+        pushSavi(
+          <>
+            <Alert variant="destructive" className="mt-2" role="alert">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error de red</AlertTitle>
+              <AlertDescription>
+                No pudimos completar la operación por un problema de conexión o tiempo de espera. Su saldo no fue afectado.
+              </AlertDescription>
+            </Alert>
+            <div className="mt-2 flex items-center gap-2" role="group" aria-label="Opciones ante error de red">
+              <Button className="savi-button-primary" onClick={() => authorize(value)} aria-label="Reintentar">Reintentar</Button>
+              <Button variant="ghost" onClick={() => { pushUser("Cancelar"); pushSavi(<p>Operación cancelada.</p>); }} aria-label="Cancelar">Cancelar</Button>
+            </div>
+          </>
+        );
+      } else {
+        doProcess(value);
+      }
+    }, 700);
   };
 
   const doProcess = (value: number) => {
@@ -685,7 +795,7 @@ export default function SAVIPrototype() {
       // Sonido + overlay de éxito
       playSuccessTone();
       setShowSuccessOverlay(true);
-      setTimeout(() => setShowSuccessOverlay(false), 1200);
+      setTimeout(() => setShowSuccessOverlay(false), 3000); // Extendido a 3 segundos
       // Confirmación estandarizada
       pushConfirmScreen(value, newCEP);
     }, 1400);
@@ -695,8 +805,8 @@ export default function SAVIPrototype() {
     const now = new Date();
     const fecha = now.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
 
-    const shareReceipt = () => {
-      // Genera un comprobante simple (texto) para descargar/compartir en demo
+    const shareReceipt = async () => {
+      // Genera un comprobante simple (texto) para compartir/descargar en demo
       const text = [
         "TRANSFERENCIA EXITOSA",
         `Monto: ${currency(value)}`,
@@ -706,6 +816,23 @@ export default function SAVIPrototype() {
         `Institución Emisora: ${BANK_NAME}`,
         `Institución Receptora: ${recipient?.bank}`,
       ].join("\n");
+
+      try {
+        const file = new File([text], `Comprobante_SPEI_${cepVal}.txt`, { type: "text/plain" });
+        const navAny = navigator as any;
+        if (navigator.share) {
+          if (navAny.canShare?.({ files: [file] })) {
+            await navigator.share({ title: "Comprobante SPEI", text: "Comprobante de transferencia", files: [file] });
+            return;
+          } else {
+            await navigator.share({ title: "Comprobante SPEI", text });
+            return;
+          }
+        }
+      } catch {
+        // noop; fallback a descarga
+      }
+
       const blob = new Blob([text], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -794,14 +921,118 @@ export default function SAVIPrototype() {
     }, 50);
   };
 
+  const findContact = (name?: string | null) => {
+    if (!name) return null;
+    const n = name.toLowerCase().trim();
+    return contacts.find((c) => c.name.toLowerCase().includes(n) || c.alias.toLowerCase().includes(n)) || null;
+  };
+
+  const dispatchNLU = (res: NLUResult) => {
+    switch (res.intent) {
+      case "check_balance":
+        pushSavi(<p className="savi-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
+        return;
+      case "collect":
+        pushSavi(
+          <CollectQR
+            initialAmount={res.amount ?? undefined}
+            initialConcept={res.concept ?? undefined}
+            autoGenerate={Boolean(res.amount && res.amount > 0)}
+          />
+        );
+        return;
+      case "share_qr":
+        pushSavi(<CollectQR />);
+        return;
+      case "send_money": {
+        if (res.recipient) {
+          const r = findContact(res.recipient);
+          if (r) {
+            setRecipient(r);
+            pushSavi(<p>Procediendo a transferir a <strong>{r.name}</strong>.</p>);
+            if (res.concept) setConcept(res.concept);
+            askAmount(r, res.amount ?? undefined);
+            return;
+          }
+        }
+        openTransfer();
+        return;
+      }
+      case "add_contact":
+        openTransfer();
+        setShowNewContact(true);
+        if (res.recipient) setNewName(res.recipient);
+        return;
+      case "help":
+        pushSavi(
+          <div>
+            <p>Puedo ayudarle con:</p>
+            <ul className="list-disc ml-5">
+              <li>Enviar dinero: "envía 200 a Ana por renta"</li>
+              <li>Consultar saldo: "mi saldo"</li>
+              <li>Cobrar con QR: "cobrar 300 tacos"</li>
+            </ul>
+          </div>
+        );
+        return;
+      default:
+        pushSavi(<p>No entendí. Pruebe: "transferir 200 a Ana" o "mi saldo".</p>);
+        return;
+    }
+  };
+
+  const handleTextSubmit = async () => {
+    const text = chatText.trim();
+    if (!text) return;
+    pushUser(text);
+    setChatText("");
+    const res = await interpret(text);
+    if (!authed) {
+      setPendingNLU(res);
+      setStep("auth");
+      pushSavi(
+        <>
+          <p>Antes de continuar, autentíquese.</p>
+          <QuickReplies
+            options={[
+              { id: "auth.pin", label: "Ingresar NIP" },
+              { id: "auth.bio", label: "Usar biometría" },
+            ]}
+            onPick={(id) => {
+              setStep("auth");
+              if (id === "auth.pin") {
+                pushUser("Ingresar NIP");
+                startPinAuth();
+              } else {
+                pushUser("Usar biometría");
+                startBiometricChoice();
+              }
+            }}
+          />
+        </>
+      );
+      return;
+    }
+    dispatchNLU(res);
+  };
+
   // Render principal
   return (
     <div className="demo-wrapper savi-surface" aria-live="polite">
-      <DesignTokens />
+      {/* Design tokens moved to src/index.css */}
 
       {/* Encabezado de la app bancaria */}
       <AppTopBar onOpenSAVI={() => setSaviOpen(true)} />
 
+      {!online && (
+        <Alert variant="destructive" className="mt-3" role="alert">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Sin conexión</AlertTitle>
+          <AlertDescription>
+            Está sin conexión. Las operaciones de red están deshabilitadas hasta que se restablezca la conexión.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="app-shell">
         {/* Panel izquierdo: Resumen de cuenta (contexto del host) */}
         <Card className="h-fit" role="complementary" aria-label="Resumen de cuenta">
@@ -813,10 +1044,10 @@ export default function SAVIPrototype() {
             <div className="text-3xl font-extrabold savi-mono">{currency(balance)}</div>
             <Separator />
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={openCollect}>
+              <Button variant="outline" onClick={openCollect} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
                 <QrCode className="h-4 w-4 mr-2" /> Cobrar
               </Button>
-              <Button variant="outline" onClick={openTransfer}>
+              <Button variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
                 <Send className="h-4 w-4 mr-2" /> Transferir
               </Button>
             </div>
@@ -828,7 +1059,7 @@ export default function SAVIPrototype() {
               </AlertDescription>
             </Alert>
 
-            {/* Panel de autopruebas (no bloquea la UI) */}
+            {/* Panel de autopruebas (básicas) */}
             <SelfTestPanel />
           </CardContent>
         </Card>
@@ -837,7 +1068,7 @@ export default function SAVIPrototype() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <User className="h-5 w-5 savi-brand" aria-hidden />
+              <img src="/logo192.png" alt="" aria-hidden className="h-5 w-5" />
               <div>
                 <div className="font-semibold">SAVI®</div>
                 <div className="text-xs text-muted-foreground">Asistente de pagos seguro</div>
@@ -848,7 +1079,7 @@ export default function SAVIPrototype() {
 
           <div className="chat-shell">
             <ScrollArea className="chat-scroll" ref={scrollRef}>
-              <div className="pr-2">
+              <div id="main-content" ref={chatLogRef} className="pr-2" role="log" aria-live="polite" aria-relevant="additions" tabIndex={-1}>
                 {messages}
                 {processing && (
                   <ChatBubble from="savi">
@@ -862,8 +1093,14 @@ export default function SAVIPrototype() {
 
             {/* Entrada de texto (opcional para demo); en producción, SAVI guía proactivamente */}
             <div className="chat-input" role="group" aria-label="Entrada libre (demo)">
-              <Input placeholder="Escriba un mensaje (demo)" aria-label="Mensaje" />
-              <Button disabled>
+              <Input
+                placeholder="Escriba un mensaje (demo)"
+                aria-label="Mensaje"
+                value={chatText}
+                onChange={(e) => setChatText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleTextSubmit(); }}
+              />
+              <Button className="savi-button-primary" onClick={handleTextSubmit} disabled={!chatText.trim()}>
                 Enviar
               </Button>
             </div>
@@ -877,6 +1114,11 @@ export default function SAVIPrototype() {
               primario <em>Compartir Comprobante</em> y jerarquía de acciones.
             </p>
             <p className="mt-1">Todo el contenido está redactado en lenguaje claro y formal, con etiquetas de accesibilidad.</p>
+            <p className="mt-2">
+              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="underline">
+                Aviso de privacidad
+              </a>
+            </p>
           </div>
         </div>
       </div>
