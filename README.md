@@ -1,7 +1,7 @@
 # SAVI® - Prototipo de Interfaz de Usuario
 
 ## Descripción
-Prototipo interactivo de la interfaz de usuario para SAVI® (Sistema de Asistente Virtual de Inclusión), desarrollado como parte del estándar de experiencia de usuario para pagos digitales en México.
+Prototipo interactivo de la interfaz de usuario para SAVI® (Sistema de Asistencia Virtual de Interbancaria), desarrollado como parte del estándar de experiencia de usuario para pagos digitales en México.
 
 ## Características Principales
 - Interfaz conversacional accesible
