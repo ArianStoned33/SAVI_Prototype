@@ -1,6 +1,7 @@
 # Re-run the plotting code to generate the exhibit and save as PNG and SVG
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 # Data
 pix_months = np.array([0, 6, 12, 24, 48])
@@ -51,8 +52,16 @@ plt.gcf().text(0.5, -0.16, footer2, fontsize=8, ha='center')
 plt.legend(loc='upper left')
 plt.tight_layout()
 
-png_path = "0_Analisis_Cuantitativo/Results/Nuevos/Exhibit10_Trayectorias_Adopcion.png"
-svg_path = "0_Analisis_Cuantitativo/Results/Nuevos/Exhibit10_Trayectorias_Adopcion.svg"
+# Construct absolute paths to ensure files are saved in the correct location
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
+results_dir = os.path.join(project_root, "0_Analisis_Cuantitativo", "Results", "Nuevos")
+
+# Create the directory if it doesn't exist
+os.makedirs(results_dir, exist_ok=True)
+
+png_path = os.path.join(results_dir, "Exhibit10_Trayectorias_Adopcion.png")
+svg_path = os.path.join(results_dir, "Exhibit10_Trayectorias_Adopcion.svg")
 plt.savefig(png_path, bbox_inches='tight')
 plt.savefig(svg_path, bbox_inches='tight')
 print(png_path)
