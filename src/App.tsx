@@ -1,11 +1,11 @@
 import React from 'react';
-import TAVIPrototype from './TAVIPrototype';
+import TAVIApp from './TAVIApp';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <TAVIPrototype />
+      <TAVIApp />
     </div>
   );
 }

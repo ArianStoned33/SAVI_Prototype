@@ -23,21 +23,20 @@ import {
   X,
   Plus,
   ScanFace,
+  Home,
+  CreditCard,
+  MessageSquare,
 } from "lucide-react";
 import { interpret, NLUResult, generateReply } from "@/lib/nlu";
 
 /**
- * SANTI® — Prototipo interactivo de UI conversacional para integrar dentro de una app bancaria.
+ * TAVI® — Prototipo interactivo y shell bancario con CoDI® y Dimo® (demo).
  *
- * Incluye:
- * - Autenticación por NIP (campo enmascarado, intentos, feedback) y Biometría (Huella/Face ID con animación y verificación).
- * - Selección rápida de montos, pantalla verde de éxito con sonido, y decremento de saldo.
- * - Alta de "Nuevo contacto" inline.
- * - Panel de **Autopruebas** para validar funciones clave (no modifica la UI principal).
- * - NUEVO: selector de monto basado en un componente con estado local (soluciona que no se pudiera escribir/seleccionar),
- *          flujo de **Cobro (QR)** con monto y concepto, y botones de **Transferir/Cobrar** funcionales.
- *
- * Nota: Front-end demo; no hay conexión real a SPEI.
+ * Esta vista integra:
+ * - Pantalla inicial del banco con tab bar inferior (Inicio, Cuentas, Pagos, TAVI).
+ * - Dentro de TAVI: chat guiado, Cobrar con QR (CoDI®), Vincular Dimo® y "Enviar a contactos".
+ * - Micro‑hints efímeros para comunicar "sin comisión" sin saturar la UI.
+ * - Estado de Dimo® NO persistente (se reinicia al refrescar para screenshots).
  */
 
 // =====================
@@ -89,7 +88,7 @@ function playSuccessTone(){
 // =====================
 // Datos simulados
 // =====================
-const INITIAL_BALANCE = 3500.0; // saldo de ejemplo para error de "fondos insuficientes"
+const INITIAL_BALANCE = 3500.0; // saldo de ejemplo
 const BANK_NAME = "Banco Ejemplo";
 
 const initialContacts = [
@@ -103,31 +102,31 @@ const initialContacts = [
 // =====================
 // Componentes auxiliares reutilizables
 // =====================
-function AppTopBar({ onOpenSANTI }: { onOpenSANTI: () => void }) {
+function AppTopBar({ onOpenTAVI }: { onOpenTAVI: () => void }) {
   return (
     <div className="flex items-center justify-between p-4 border rounded-2xl bg-white shadow-sm" role="banner">
       <div className="flex items-center gap-3">
-        <img src="/logo192.png" alt="SANTI" className="h-6 w-6" />
+        <img src="/logo192.png" alt="TAVI" className="h-6 w-6" />
         <div className="text-sm leading-tight">
           <div className="font-semibold">{BANK_NAME}</div>
           <div className="text-xs text-muted-foreground">App bancaria — demo</div>
         </div>
       </div>
-      <Button className="SANTI-button-primary" onClick={onOpenSANTI} aria-label="Abrir SANTI, asistente de pagos">
-        <Send className="mr-2 h-4 w-4" /> Abrir SANTI
+      <Button className="TAVI-button-primary" onClick={onOpenTAVI} aria-label="Abrir TAVI, asistente de pagos">
+        <Send className="mr-2 h-4 w-4" /> Abrir TAVI
       </Button>
     </div>
   );
 }
 
-function ChatBubble({ from, children }: { from: "SANTI" | "user"; children: React.ReactNode }) {
-  const isSANTI = from === "SANTI";
+function ChatBubble({ from, children }: { from: "TAVI" | "user"; children: React.ReactNode }) {
+  const isTAVI = from === "TAVI";
   return (
-    <div className={`w-full flex ${isSANTI ? "justify-start" : "justify-end"} mb-2`}>
+    <div className={`w-full flex ${isTAVI ? "justify-start" : "justify-end"} mb-2`}>
       <div
-        className={`max-w-[85%] px-3 py-2 rounded-2xl text-[15px] leading-6 shadow-sm ${isSANTI ? "SANTI-chat-bubble-SANTI" : "SANTI-chat-bubble-user"}`}
+        className={`max-w-[85%] px-3 py-2 rounded-2xl text-[15px] leading-6 shadow-sm ${isTAVI ? "TAVI-chat-bubble-TAVI" : "TAVI-chat-bubble-user"}`}
         role="group"
-        aria-label={isSANTI ? "Mensaje de SANTI" : "Mensaje del usuario"}
+        aria-label={isTAVI ? "Mensaje de TAVI" : "Mensaje del usuario"}
       >
         {children}
       </div>
@@ -142,7 +141,7 @@ function QuickReplies({ options, onPick }: { options: { id: string; label: strin
         <button
           key={opt.id}
           type="button"
-          className="quick-reply SANTI-chip text-sm"
+          className="quick-reply TAVI-chip text-sm"
           onClick={() => onPick(opt.id)}
           aria-label={opt.label}
           onKeyDown={(e) => {
@@ -170,7 +169,29 @@ function QuickReplies({ options, onPick }: { options: { id: string; label: strin
   );
 }
 
-// Selector de monto con estado local para evitar el problema de inputs "congelados" en burbujas
+function BottomNav({ active, onChange }: { active: 'inicio'|'cuentas'|'pagos'|'tavi'; onChange: (t: 'inicio'|'cuentas'|'pagos'|'tavi') => void }) {
+  const item = (id: 'inicio'|'cuentas'|'pagos'|'tavi', label: string, Icon: any) => (
+    <button
+      onClick={() => onChange(id)}
+      aria-label={label}
+      aria-current={active === id ? 'page' : undefined}
+      className={`flex-1 py-2 px-3 text-sm flex items-center justify-center gap-2 border-t ${active === id ? 'text-slate-900 font-medium' : 'text-muted-foreground'}`}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+    </button>
+  );
+  return (
+    <nav role="navigation" aria-label="Secciones" className="mt-4 rounded-xl border bg-white shadow-sm flex">
+      {item('inicio', 'Inicio', Home)}
+      {item('cuentas', 'Cuentas', CreditCard)}
+      {item('pagos', 'Pagos', Send)}
+      {item('tavi', 'TAVI', MessageSquare)}
+    </nav>
+  );
+}
+
+// Selector de monto con estado local
 function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipientName?: string; initialValue?: number; onConfirm: (value: number) => void; }) {
   const [local, setLocal] = useState(initialValue ? String(initialValue) : "");
   const [touched, setTouched] = useState(false);
@@ -215,7 +236,7 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "amount-error" : undefined}
         />
-        <Button className="SANTI-button-primary" onClick={() => { const v = parseValue(); setTouched(true); if (v > 0) onConfirm(v); }} aria-label="Continuar" disabled={!(parseValue() > 0)}>
+        <Button className="TAVI-button-primary" onClick={() => { const v = parseValue(); setTouched(true); if (v > 0) onConfirm(v); }} aria-label="Continuar" disabled={!(parseValue() > 0)}>
           Continuar <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
@@ -224,7 +245,7 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
       )}
       <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Montos rápidos">
         {chips.map((v) => (
-          <button key={v} className="quick-reply SANTI-chip text-sm" onClick={() => { setLocal(v.toLocaleString("es-MX")); setTouched(true); setError(null); }} aria-label={`Seleccionar ${currency(v)}`}>
+          <button key={v} className="quick-reply TAVI-chip text-sm" onClick={() => { setLocal(v.toLocaleString("es-MX")); setTouched(true); setError(null); }} aria-label={`Seleccionar ${currency(v)}`}>
             {currency(v)}
           </button>
         ))}
@@ -272,7 +293,7 @@ function CollectQR({ onClose, initialAmount, initialConcept, autoGenerate }: { o
       <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="Datos de cobro">
         <Input placeholder="Monto" inputMode="decimal" value={amt} onChange={(e)=>setAmt(e.target.value)} aria-label="Monto a cobrar"/>
         <Input placeholder="Concepto (opcional)" value={conc} onChange={(e)=>setConc(e.target.value)} aria-label="Concepto"/>
-        <Button className="SANTI-button-primary" onClick={onGenerate} aria-label="Generar QR">Generar QR</Button>
+        <Button className="TAVI-button-primary" onClick={onGenerate} aria-label="Generar QR">Generar QR</Button>
       </div>
       {payload && (
         <Card className="mt-3">
@@ -297,7 +318,7 @@ function CollectQR({ onClose, initialAmount, initialConcept, autoGenerate }: { o
 }
 
 // =====================
-// SANTI Agent (conversación + flujos)
+// TAVI Agent (conversación + flujos) con shell
 // =====================
 
 type Step =
@@ -313,8 +334,10 @@ type Step =
   | "success"
   | "error.insufficient";
 
-export default function SANTIPrototype() {
-  const [SANTIOpen, setSANTIOpen] = useState(false);
+export default function TAVIApp() {
+  // shell tabs
+  const [activeTab, setActiveTab] = useState<'inicio'|'cuentas'|'pagos'|'tavi'>('inicio');
+
   const [step, setStep] = useState<Step>("welcome");
   const [messages, setMessages] = useState<React.ReactNode[]>([]);
 
@@ -325,12 +348,10 @@ export default function SANTIPrototype() {
   const [concept, setConcept] = useState<string>("");
   const [recipient, setRecipient] = useState<typeof contacts[number] | null>(null);
   const [search, setSearch] = useState("");
-  const [amount, setAmount] = useState<string>("");
-  const [cep, setCEP] = useState<string>("");
   const [processing, setProcessing] = useState(false);
   const [online, setOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
-  // Dimo®
+  // Dimo® (no persistente)
   const [dimoLinked, setDimoLinked] = useState(false);
   const dimoPhoneContacts = [
     { id: "tel-ana", name: "Ana López", phone: "+52 55 1234 5678", bank: "BBVA" },
@@ -338,7 +359,7 @@ export default function SANTIPrototype() {
     { id: "tel-maria", name: "María García", phone: "+52 33 2222 1111", bank: "Banorte" },
   ];
 
-  // Autenticación
+  // Auth
   const [pinInput, setPinInput] = useState("");
   const [pinAttempts, setPinAttempts] = useState(0);
   const [showNewContact, setShowNewContact] = useState(false);
@@ -350,17 +371,20 @@ export default function SANTIPrototype() {
   const [chatText, setChatText] = useState("");
   const [pendingNLU, setPendingNLU] = useState<NLUResult | null>(null);
 
+  const [showNoFeeHint, setShowNoFeeHint] = useState<null | 'qr' | 'dimo'>(null);
+  const [showDimoSuccessHint, setShowDimoSuccessHint] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
+  const isTaviOpen = activeTab === 'tavi';
+
   useEffect(() => {
-    // auto scroll to last message
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, processing]);
 
-  // En pantallas clave, llevar el foco al contenedor del chat para lectores de pantalla
   useEffect(() => {
     if (step === 'transfer.confirm' || step === 'success') {
       chatLogRef.current?.focus();
@@ -381,9 +405,9 @@ export default function SANTIPrototype() {
   useEffect(() => {
     if (!initializedRef.current && messages.length === 0) {
       initializedRef.current = true;
-      pushSANTI(
+      pushTAVI(
         <>
-          <p className="SANTI-text-strong">Bienvenido a SANTI, su asistente de pagos seguro.</p>
+          <p className="TAVI-text-strong">Bienvenido a TAVI, su asistente de pagos seguro.</p>
           <p>Para comenzar, necesito verificar su identidad.</p>
           <QuickReplies
             options={[
@@ -406,11 +430,11 @@ export default function SANTIPrototype() {
     }
   }, [messages.length]);
 
-  const pushSANTI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="SANTI">{node}</ChatBubble>]);
+  const pushTAVI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="TAVI">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
 
   const completeAuth = (mode: "NIP" | "Biometría") => {
-    pushSANTI(
+    pushTAVI(
       <>
         <p>
           <Lock className="inline-block mr-1 h-4 w-4" aria-hidden /> Para su seguridad, autenticando con {mode.toLowerCase()}...
@@ -419,7 +443,7 @@ export default function SANTIPrototype() {
     );
     setTimeout(() => {
       setAuthed(true);
-      pushSANTI(
+      pushTAVI(
         <>
           <p>Gracias. Su identidad ha sido verificada.</p>
           <p>¿Cómo puedo ayudarle hoy?</p>
@@ -444,7 +468,7 @@ export default function SANTIPrototype() {
 
   // === Autenticación: NIP ===
   const startPinAuth = () => {
-    pushSANTI(
+    pushTAVI(
       <>
         <p>Ingrese su NIP de 4 dígitos.</p>
         <div className="mt-2 flex items-center gap-2" role="group" aria-label="Ingresar NIP">
@@ -458,7 +482,7 @@ export default function SANTIPrototype() {
             className="max-w-[120px] text-center tracking-[6px]"
             type="password"
           />
-          <Button className="SANTI-button-primary" onClick={verifyPin} aria-label="Confirmar NIP">
+          <Button className="TAVI-button-primary" onClick={verifyPin} aria-label="Confirmar NIP">
             Confirmar
           </Button>
         </div>
@@ -468,13 +492,13 @@ export default function SANTIPrototype() {
 
   const verifyPin = () => {
     if (pinInput === "1234") {
-      pushSANTI(<p><CheckCircle2 className="inline mr-1 h-4 w-4 SANTI-success" aria-hidden/> NIP verificado.</p>);
+      pushTAVI(<p><CheckCircle2 className="inline mr-1 h-4 w-4 TAVI-success" aria-hidden/> NIP verificado.</p>);
       setPinAttempts(0);
       setPinInput("");
       completeAuth("NIP");
     } else {
       setPinAttempts((n) => n + 1);
-      pushSANTI(
+      pushTAVI(
         <Alert className="mt-2" role="alert">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>NIP incorrecto</AlertTitle>
@@ -488,7 +512,7 @@ export default function SANTIPrototype() {
 
   // === Autenticación: Biometría ===
   const startBiometricChoice = () => {
-    pushSANTI(
+    pushTAVI(
       <>
         <p>Seleccione el método biométrico:</p>
         <QuickReplies
@@ -506,17 +530,17 @@ export default function SANTIPrototype() {
   };
 
   const startBiometric = (mode: 'finger' | 'face') => {
-    pushSANTI(
+    pushTAVI(
       <div className="flex items-center gap-3">
         <div className="p-3 rounded-full border pulse" aria-hidden>
-          {mode === 'finger' ? <Fingerprint className="h-8 w-8 SANTI-brand"/> : <ScanFace className="h-8 w-8 SANTI-brand"/>}
+          {mode === 'finger' ? <Fingerprint className="h-8 w-8 TAVI-brand"/> : <ScanFace className="h-8 w-8 TAVI-brand"/>}
         </div>
         <div>Coloque {mode === 'finger' ? 'su dedo en el lector' : 'su rostro frente a la cámara'}...</div>
       </div>
     );
     setTimeout(() => {
-      pushSANTI(
-        <p><CheckCircle2 className="inline mr-1 h-4 w-4 SANTI-success" aria-hidden/> {mode === 'finger' ? 'Huella verificada' : 'Face ID verificado'}.</p>
+      pushTAVI(
+        <p><CheckCircle2 className="inline mr-1 h-4 w-4 TAVI-success" aria-hidden/> {mode === 'finger' ? 'Huella verificada' : 'Face ID verificado'}.</p>
       );
       completeAuth("Biometría");
     }, 1000);
@@ -524,7 +548,7 @@ export default function SANTIPrototype() {
 
   const openDimoLinkFlow = () => {
     pushUser("Vincular Dimo®");
-    pushSANTI(
+    pushTAVI(
       <>
         <p>Vincule su número con <strong>Dimo®</strong> para enviar dinero a sus contactos telefónicos sin costo.</p>
         <QuickReplies
@@ -535,16 +559,18 @@ export default function SANTIPrototype() {
           onPick={(id) => {
             if (id === "dimo.link") {
               pushUser("Vincular ahora");
-              pushSANTI(
+              pushTAVI(
                 <p>
-                  <LoaderCircle className="inline-block SANTI-spin mr-2 h-4 w-4" aria-hidden /> Verificando con Dimo®...
+                  <LoaderCircle className="inline-block TAVI-spin mr-2 h-4 w-4" aria-hidden /> Verificando con Dimo®...
                 </p>
               );
               setTimeout(() => {
                 setDimoLinked(true);
-                pushSANTI(
+                setShowDimoSuccessHint(true);
+                setTimeout(() => setShowDimoSuccessHint(false), 1900);
+                pushTAVI(
                   <>
-                    <p><CheckCircle2 className="inline mr-1 h-4 w-4 SANTI-success" aria-hidden/> Dimo® vinculado correctamente.</p>
+                    <p><CheckCircle2 className="inline mr-1 h-4 w-4 TAVI-success" aria-hidden/> Dimo® vinculado correctamente.</p>
                     <p>Ahora puede <strong>Enviar a contactos</strong> vía Dimo®.</p>
                   </>
                 );
@@ -561,7 +587,7 @@ export default function SANTIPrototype() {
   const openDimoContactPicker = () => {
     if (!dimoLinked) { openDimoLinkFlow(); return; }
     pushUser("Enviar a contactos (Dimo®)");
-    pushSANTI(
+    pushTAVI(
       <>
         <p>Seleccione un contacto (mock):</p>
         <QuickReplies
@@ -582,7 +608,7 @@ export default function SANTIPrototype() {
 
   const openTransfer = () => {
     setStep("transfer.pickRecipient");
-    pushSANTI(
+    pushTAVI(
       <>
         <p>¿A quién desea enviar dinero?</p>
         <QuickReplies
@@ -610,7 +636,7 @@ export default function SANTIPrototype() {
               pushUser(r.name);
               askAmount(r);
             } else {
-              pushSANTI(<p>No encontré ese contacto. Intente con otro nombre o alias.</p>);
+              pushTAVI(<p>No encontré ese contacto. Intente con otro nombre o alias.</p>);
             }
           }} aria-label="Buscar">
             <Search className="h-4 w-4" />
@@ -625,8 +651,8 @@ export default function SANTIPrototype() {
             <Input placeholder="Alias" value={newAlias} onChange={(e)=>setNewAlias(e.target.value)} aria-label="Alias"/>
             <Input placeholder="Banco" value={newBank} onChange={(e)=>setNewBank(e.target.value)} aria-label="Banco"/>
             <div className="col-span-3 flex gap-2">
-              <Button className="SANTI-button-primary" onClick={() => {
-                if(!newName.trim() || !newAlias.trim() || !newBank.trim()){ pushSANTI(<p>Complete nombre, alias y banco.</p>); return;}
+              <Button className="TAVI-button-primary" onClick={() => {
+                if(!newName.trim() || !newAlias.trim() || !newBank.trim()){ pushTAVI(<p>Complete nombre, alias y banco.</p>); return;}
                 const id = newName.toLowerCase().replace(/[^a-z0-9]+/g,'');
                 const rec = { id, name: newName.trim(), alias: newAlias.trim(), bank: newBank.trim() } as any;
                 setContacts((arr) => [...arr, rec]);
@@ -647,12 +673,12 @@ export default function SANTIPrototype() {
     );
 
     if (id === "menu.balance") {
-      pushSANTI(<p className="SANTI-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
+      pushTAVI(<p className="TAVI-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
       return;
     }
 
     if (id === "menu.share") {
-      pushSANTI(
+      pushTAVI(
         <>
           <CollectQR />
         </>
@@ -667,14 +693,13 @@ export default function SANTIPrototype() {
 
   const askAmount = (r: typeof contacts[number], initial?: number) => {
     setStep("transfer.amount");
-    pushSANTI(
+    pushTAVI(
       <AmountSelector
         recipientName={r.name}
         initialValue={initial}
         onConfirm={(value) => {
           if (!recipient) setRecipient(r);
-          if (!value || value <= 0) { pushSANTI(<p>Ingrese un monto válido mayor a $0.00 MXN.</p>); return; }
-          setAmount(String(value));
+          if (!value || value <= 0) { pushTAVI(<p>Ingrese un monto válido mayor a $0.00 MXN.</p>); return; }
           askConcept(value);
         }}
       />
@@ -688,7 +713,7 @@ export default function SANTIPrototype() {
       reviewAndConfirm(value);
     };
 
-    pushSANTI(
+    pushTAVI(
       <>
         <p>¿Desea agregar un concepto de pago? (opcional)</p>
         <form onSubmit={handleSubmit} className="w-full">
@@ -707,7 +732,7 @@ export default function SANTIPrototype() {
               Omitir
             </Button>
             <Button 
-              className="SANTI-button-primary" 
+              className="TAVI-button-primary" 
               type="submit"
               aria-label="Continuar"
             >
@@ -721,11 +746,11 @@ export default function SANTIPrototype() {
 
   const reviewAndConfirm = (value: number) => {
     setStep("transfer.confirm");
-    pushSANTI(
+    pushTAVI(
       <>
         <p className="mb-1">Por favor, confirme los datos de la transferencia:</p>
         <Card className="mt-2" aria-label="Resumen de la operación">
-          <CardContent className="pt-4 text-sm SANTI-mono">
+          <CardContent className="pt-4 text-sm TAVI-mono">
             <div className="grid grid-cols-2 gap-y-2">
               <div className="text-muted-foreground">Destinatario:</div>
               <div><strong>{recipient?.name}</strong></div>
@@ -741,10 +766,10 @@ export default function SANTIPrototype() {
           </CardContent>
         </Card>
         <div className="mt-3 flex items-center gap-2" role="group" aria-label="Autorizar o cancelar la operación">
-          <Button variant="outline" onClick={() => pushSANTI(<p>Operación cancelada.</p>)} aria-label="Cancelar">
+          <Button variant="outline" onClick={() => pushTAVI(<p>Operación cancelada.</p>)} aria-label="Cancelar">
             <X className="mr-1 h-4 w-4" /> Cancelar
           </Button>
-          <Button className="SANTI-button-primary" onClick={() => authorize(value)} aria-label="Confirmar y Enviar">
+          <Button className="TAVI-button-primary" onClick={() => authorize(value)} aria-label="Confirmar y Enviar">
             Confirmar y Enviar <Send className="ml-1 h-4 w-4" />
           </Button>
         </div>
@@ -753,10 +778,9 @@ export default function SANTIPrototype() {
   };
 
   const authorize = (value: number) => {
-    // Validación de fondos insuficientes antes de autorizar
     if (balance < value) {
       setStep("error.insufficient");
-      pushSANTI(
+      pushTAVI(
         <>
           <Alert className="mt-2" role="alert">
             <AlertTriangle className="h-4 w-4" />
@@ -767,10 +791,10 @@ export default function SANTIPrototype() {
           </Alert>
           <div className="mt-2 flex items-center gap-2" role="group" aria-label="Opciones ante fondos insuficientes">
             <Button
-              className="SANTI-button-primary"
+              className="TAVI-button-primary"
               onClick={() => {
                 const available = Math.max(0, Number(balance.toFixed(2)));
-                if (available <= 0) { pushSANTI(<p>No cuenta con saldo disponible para enviar.</p>); return; }
+                if (available <= 0) { pushTAVI(<p>No cuenta con saldo disponible para enviar.</p>); return; }
                 pushUser("Enviar saldo disponible");
                 reviewAndConfirm(available);
               }}
@@ -791,7 +815,7 @@ export default function SANTIPrototype() {
             </Button>
             <Button
               variant="ghost"
-              onClick={() => { pushUser("Cancelar"); pushSANTI(<p>Operación cancelada.</p>); }}
+              onClick={() => { pushUser("Cancelar"); pushTAVI(<p>Operación cancelada.</p>); }}
               aria-label="Cancelar"
             >
               Cancelar
@@ -803,7 +827,7 @@ export default function SANTIPrototype() {
     }
 
     if (!online) {
-      pushSANTI(
+      pushTAVI(
         <Alert className="mt-2" role="alert">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Sin conexión</AlertTitle>
@@ -816,18 +840,17 @@ export default function SANTIPrototype() {
     }
 
     setStep("transfer.authorize");
-    pushSANTI(
+    pushTAVI(
       <>
         <p>
           Para su seguridad, autorice la operación con su NIP.
         </p>
       </>
     );
-    // Simulación de autorización + posibles fallos de red/timeout antes del procesamiento
     setTimeout(() => {
-      const shouldFail = Math.random() < 0.25; // 25% de probabilidad de fallo
+      const shouldFail = Math.random() < 0.25;
       if (shouldFail) {
-        pushSANTI(
+        pushTAVI(
           <>
             <Alert variant="destructive" className="mt-2" role="alert">
               <AlertTriangle className="h-4 w-4" />
@@ -837,8 +860,8 @@ export default function SANTIPrototype() {
               </AlertDescription>
             </Alert>
             <div className="mt-2 flex items-center gap-2" role="group" aria-label="Opciones ante error de red">
-              <Button className="SANTI-button-primary" onClick={() => authorize(value)} aria-label="Reintentar">Reintentar</Button>
-              <Button variant="ghost" onClick={() => { pushUser("Cancelar"); pushSANTI(<p>Operación cancelada.</p>); }} aria-label="Cancelar">Cancelar</Button>
+              <Button className="TAVI-button-primary" onClick={() => authorize(value)} aria-label="Reintentar">Reintentar</Button>
+              <Button variant="ghost" onClick={() => { pushUser("Cancelar"); pushTAVI(<p>Operación cancelada.</p>); }} aria-label="Cancelar">Cancelar</Button>
             </div>
           </>
         );
@@ -850,9 +873,9 @@ export default function SANTIPrototype() {
 
   const doProcess = (value: number) => {
     setStep("processing");
-    pushSANTI(
+    pushTAVI(
       <p>
-        <LoaderCircle className="inline-block SANTI-spin mr-2 h-4 w-4" aria-hidden /> Procesando la transferencia de forma segura...
+        <LoaderCircle className="inline-block TAVI-spin mr-2 h-4 w-4" aria-hidden /> Procesando la transferencia de forma segura...
       </p>
     );
     setProcessing(true);
@@ -860,13 +883,10 @@ export default function SANTIPrototype() {
       setProcessing(false);
       setBalance((b) => Math.max(0, b - value));
       const newCEP = genCEP();
-      setCEP(newCEP);
       setStep("success");
-      // Sonido + overlay de éxito
       playSuccessTone();
       setShowSuccessOverlay(true);
-      setTimeout(() => setShowSuccessOverlay(false), 3000); // Extendido a 3 segundos
-      // Confirmación estandarizada
+      setTimeout(() => setShowSuccessOverlay(false), 3000);
       pushConfirmScreen(value, newCEP);
     }, 1400);
   };
@@ -876,7 +896,6 @@ export default function SANTIPrototype() {
     const fecha = now.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
 
     const shareReceipt = async () => {
-      // Genera un comprobante simple (texto) para compartir/descargar en demo
       const text = [
         "TRANSFERENCIA EXITOSA",
         `Monto: ${currency(value)}`,
@@ -900,7 +919,7 @@ export default function SANTIPrototype() {
           }
         }
       } catch {
-        // noop; fallback a descarga
+        // noop
       }
 
       const blob = new Blob([text], { type: "text/plain" });
@@ -912,20 +931,20 @@ export default function SANTIPrototype() {
       URL.revokeObjectURL(url);
     };
 
-    pushSANTI(
+    pushTAVI(
       <div className="mt-2" role="region" aria-label="Confirmación de transferencia">
         <Card className="shadow-md">
           <CardHeader className="pb-2">
-            <div className="SANTI-confirm-header">
+            <div className="TAVI-confirm-header">
               <div className="rounded-full bg-green-100 p-2" aria-hidden>
-                <CheckCircle2 className="h-6 w-6 SANTI-success" />
+                <CheckCircle2 className="h-6 w-6 TAVI-success" />
               </div>
               <CardTitle className="text-xl">Transferencia exitosa</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="SANTI-confirm-amount SANTI-mono">{currency(value)} MXN</div>
-            <div className="SANTI-kv text-sm SANTI-mono">
+            <div className="TAVI-confirm-amount TAVI-mono">{currency(value)} MXN</div>
+            <div className="TAVI-kv text-sm TAVI-mono">
               <div className="text-muted-foreground">Para:</div>
               <div><strong>{recipient?.name}</strong></div>
               <div className="text-muted-foreground">Fecha y Hora:</div>
@@ -939,16 +958,13 @@ export default function SANTIPrototype() {
             </div>
             <Separator />
             <div className="flex items-center gap-2">
-              {/* Botón Primario: Compartir Comprobante */}
-              <Button className="SANTI-button-primary" onClick={shareReceipt} aria-label="Compartir comprobante">
+              <Button className="TAVI-button-primary" onClick={shareReceipt} aria-label="Compartir comprobante">
                 <Share2 className="mr-2 h-4 w-4" /> Compartir Comprobante
               </Button>
-              {/* Botón Secundario: Realizar otra operación */}
               <Button variant="outline" onClick={() => resetToWelcome()} aria-label="Realizar otra operación">
                 Realizar otra operación
               </Button>
-              {/* Botón Terciario: Finalizar */}
-              <button className="underline text-sm" onClick={() => setSANTIOpen(false)} aria-label="Finalizar y cerrar SANTI">
+              <button className="underline text-sm" onClick={() => resetToWelcome()} aria-label="Finalizar y cerrar TAVI">
                 Finalizar
               </button>
             </div>
@@ -960,21 +976,19 @@ export default function SANTIPrototype() {
 
   const openCollect = () => {
     pushUser("Cobrar");
-    pushSANTI(<CollectQR />);
+    setShowNoFeeHint('qr');
+    setTimeout(() => setShowNoFeeHint(null), 1900);
+    pushTAVI(<CollectQR />);
   };
 
   const resetToWelcome = () => {
-    // Reinicia flujo conservando saldo actual
     setMessages([]);
     setRecipient(null);
-    setAmount("");
     setConcept("");
-    setCEP("");
     setStep("welcome");
-    setAuthed(true); // si ya se autenticó, mantenemos sesión
-    // Re-hidratar conversación post-auth
+    setAuthed(true);
     setTimeout(() => {
-      pushSANTI(
+      pushTAVI(
         <>
           <p>¿Cómo puedo ayudarle hoy?</p>
           <QuickReplies
@@ -1002,15 +1016,15 @@ export default function SANTIPrototype() {
       case "check_balance":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSANTI(<p>{ack}</p>);
-          pushSANTI(<p className="SANTI-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(<p className="TAVI-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
         }
         return;
       case "collect":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSANTI(<p>{ack}</p>);
-          pushSANTI(
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(
             <CollectQR
               initialAmount={res.amount ?? undefined}
               initialConcept={res.concept ?? undefined}
@@ -1022,8 +1036,8 @@ export default function SANTIPrototype() {
       case "share_qr":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSANTI(<p>{ack}</p>);
-          pushSANTI(<CollectQR />);
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(<CollectQR />);
         }
         return;
       case "send_money": {
@@ -1032,21 +1046,21 @@ export default function SANTIPrototype() {
           if (r) {
             setRecipient(r);
             const ack = await generateReply({ userText, result: res, balance });
-            pushSANTI(<p>{ack}</p>);
+            pushTAVI(<p>{ack}</p>);
             if (res.concept) setConcept(res.concept);
             askAmount(r, res.amount ?? undefined);
             return;
           }
         }
         const ack = await generateReply({ userText, result: res, balance });
-        pushSANTI(<p>{ack}</p>);
+        pushTAVI(<p>{ack}</p>);
         openTransfer();
         return;
       }
       case "add_contact":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSANTI(<p>{ack}</p>);
+          pushTAVI(<p>{ack}</p>);
         }
         openTransfer();
         setShowNewContact(true);
@@ -1055,22 +1069,29 @@ export default function SANTIPrototype() {
       case "help":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSANTI(<p>{ack}</p>);
-          pushSANTI(
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(
             <div>
               <p>Puedo ayudarle con:</p>
               <ul className="list-disc ml-5">
                 <li>Enviar dinero: "envía 200 a Ana por renta"</li>
                 <li>Consultar saldo: "mi saldo"</li>
-                <li>Cobrar con QR: "cobrar 300 tacos"</li>
+                <li>Cobrar con QR (CoDI®): "cobrar 300 tacos"</li>
               </ul>
             </div>
           );
         }
         return;
+      case "link_dimo":
+        {
+          const ack = await generateReply({ userText, result: res, balance });
+          pushTAVI(<p>{ack}</p>);
+          openDimoLinkFlow();
+        }
+        return;
       default:
-        const ack = await generateReply({ userText, result: res, balance });
-        pushSANTI(<p>{ack}</p>);
+        const ack2 = await generateReply({ userText, result: res, balance });
+        pushTAVI(<p>{ack2}</p>);
         return;
     }
   };
@@ -1084,7 +1105,7 @@ export default function SANTIPrototype() {
     if (!authed) {
       setPendingNLU(res);
       setStep("auth");
-      pushSANTI(
+      pushTAVI(
         <>
           <p>Antes de continuar, autentíquese.</p>
           <QuickReplies
@@ -1111,14 +1132,16 @@ export default function SANTIPrototype() {
   };
 
   // Render principal
-  if (!SANTIOpen) {
-    return (
-      <div className="demo-wrapper SANTI-surface" aria-live="polite">
-        <AppTopBar onOpenSANTI={() => setSANTIOpen(true)} />
+  return (
+    <div className="demo-wrapper TAVI-surface" aria-live="polite">
+      <AppTopBar onOpenTAVI={() => setActiveTab('tavi')} />
+
+      {/* Contenido según tab */}
+      {activeTab !== 'tavi' ? (
         <div className="app-shell">
           <Card className="h-fit" role="complementary" aria-label="Inicio del banco (mock)">
             <CardHeader>
-              <CardTitle>Inicio — Banco Ejemplo</CardTitle>
+              <CardTitle>{activeTab === 'inicio' ? 'Inicio — ' : activeTab === 'cuentas' ? 'Cuentas — ' : 'Pagos — '}Banco Ejemplo</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm text-muted-foreground">Accesos rápidos</div>
@@ -1130,155 +1153,148 @@ export default function SANTIPrototype() {
               </div>
               <Separator />
               <div className="grid grid-cols-2 gap-2">
-                <Button className="SANTI-button-primary" onClick={() => setSANTIOpen(true)} aria-label="Abrir SANTI">
-                  <Send className="mr-2 h-4 w-4" /> Abrir SANTI
+                <Button className="TAVI-button-primary" onClick={() => setActiveTab('tavi')} aria-label="Abrir TAVI">
+                  <Send className="mr-2 h-4 w-4" /> Abrir TAVI
                 </Button>
-                <Button variant="outline" onClick={openCollect}>
+                <Button variant="outline" onClick={() => { setShowNoFeeHint('qr'); setTimeout(()=>setShowNoFeeHint(null), 1900); }}>
                   <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
                 </Button>
               </div>
+              {showNoFeeHint === 'qr' && (
+                <div className="flex justify-start mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
+              )}
             </CardContent>
           </Card>
           <div />
         </div>
-      </div>
-    );
-  }
-  return (
-    <div className="demo-wrapper SANTI-surface" aria-live="polite">
-      {/* Design tokens moved to src/index.css */}
-
-      {/* Encabezado de la app bancaria */}
-      <AppTopBar onOpenSANTI={() => setSANTIOpen(true)} />
-
-      {!online && (
-        <Alert variant="destructive" className="mt-3" role="alert">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Sin conexión</AlertTitle>
-          <AlertDescription>
-            Está sin conexión. Las operaciones de red están deshabilitadas hasta que se restablezca la conexión.
-          </AlertDescription>
-        </Alert>
-      )}
-      <div className="app-shell">
-        {/* Panel izquierdo: Resumen de cuenta (contexto del host) */}
-        <Card className="h-fit" role="complementary" aria-label="Resumen de cuenta">
-          <CardHeader>
-            <CardTitle>Cuenta de Depósito</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm text-muted-foreground">Saldo disponible</div>
-            <div className="text-3xl font-extrabold SANTI-mono">{currency(balance)}</div>
-            <Separator />
-            {/* Dimo® action */}
-            <div>
-              {!dimoLinked ? (
-                <Button variant="outline" onClick={openDimoLinkFlow} aria-label="Vincular Dimo">
-                  Vincular Dimo®
-                </Button>
-              ) : (
-                <Button variant="outline" onClick={openDimoContactPicker} aria-label="Enviar a contactos vía Dimo">
-                  <Send className="h-4 w-4 mr-2" /> Enviar a contactos
-                  <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
-                </Button>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={openCollect} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                <QrCode className="h-4 w-4 mr-2" /> Cobrar <span className="brand-chip brand-codi ml-2">CoDI®</span>
-              </Button>
-              <Button variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                <Send className="h-4 w-4 mr-2" /> Transferir
-              </Button>
-            </div>
-            <Alert>
-              <Lock className="h-4 w-4" />
-              <AlertTitle>Seguridad</AlertTitle>
-              <AlertDescription>
-                Sus operaciones con SANTI requieren autorización explícita (NIP o biometría).
-              </AlertDescription>
-            </Alert>
-
-            {/* Panel de autopruebas (básicas) */}
-            <SelfTestPanel />
-          </CardContent>
-        </Card>
-
-        {/* Panel derecho: Ventana de SANTI (chat + GUI) */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <img src="/logo192.png" alt="" aria-hidden className="h-5 w-5" />
+      ) : (
+        <div className="app-shell">
+          {/* Panel izquierdo: Resumen de cuenta */}
+          <Card className="h-fit" role="complementary" aria-label="Resumen de cuenta">
+            <CardHeader>
+              <CardTitle>Cuenta de Depósito</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm text-muted-foreground">Saldo disponible</div>
+              <div className="text-3xl font-extrabold TAVI-mono">{currency(balance)}</div>
+              <Separator />
+              {/* Dimo® action */}
               <div>
-                <div className="font-semibold">SANTI®</div>
-                <div className="text-xs text-muted-foreground">Asistente de pagos seguro</div>
+                {!dimoLinked ? (
+                  <Button variant="outline" onClick={openDimoLinkFlow} aria-label="Vincular Dimo">
+                    Vincular Dimo®
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => { setShowNoFeeHint('dimo'); setTimeout(()=>setShowNoFeeHint(null), 1900); openDimoContactPicker(); }} aria-label="Enviar a contactos vía Dimo">
+                    <Send className="h-4 w-4 mr-2" /> Enviar a contactos
+                    <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
+                  </Button>
+                )}
+                {showDimoSuccessHint && (
+                  <div className="mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-success">Transfiere sin comisión via Dimo®</div></div>
+                )}
               </div>
-            </div>
-            <div className="text-xs text-muted-foreground">Demo UI — v1.3</div>
-          </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={openCollect} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
+                  <QrCode className="h-4 w-4 mr-2" /> Cobrar <span className="brand-chip brand-codi ml-2">CoDI®</span>
+                </Button>
+                <Button variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
+                  <Send className="h-4 w-4 mr-2" /> Transferir
+                </Button>
+              </div>
+              {showNoFeeHint && (
+                <div className="flex justify-start"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
+              )}
+              <Alert>
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Seguridad</AlertTitle>
+                <AlertDescription>
+                  Sus operaciones con TAVI requieren autorización explícita (NIP o biometría).
+                </AlertDescription>
+              </Alert>
+              <SelfTestPanel />
+            </CardContent>
+          </Card>
 
-          <div className="chat-shell">
-            <ScrollArea className="chat-scroll" ref={scrollRef}>
-              <div className="chat-sticky-head" role="region" aria-label="Acciones rápidas">
-                <div className="flex items-center gap-2 justify-center">
-                  <Button size="sm" variant="outline" onClick={openCollect} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                    <QrCode className="h-4 w-4 mr-2" /> Cobrar con QR <span className="brand-chip brand-codi ml-2">CoDI®</span>
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                    <Send className="h-4 w-4 mr-2" /> Transferir
-                  </Button>
-                  {dimoLinked && (
-                    <Button size="sm" variant="outline" onClick={openDimoContactPicker} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                      <Send className="h-4 w-4 mr-2" /> Enviar a contactos <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
-                    </Button>
-                  )}
+          {/* Panel derecho: Ventana de TAVI (chat + GUI) */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <img src="/logo192.png" alt="" aria-hidden className="h-5 w-5" />
+                <div>
+                  <div className="font-semibold">TAVI®</div>
+                  <div className="text-xs text-muted-foreground">Asistente de pagos seguro</div>
                 </div>
               </div>
-              <div id="main-content" ref={chatLogRef} className="pr-2" role="log" aria-live="polite" aria-relevant="additions" tabIndex={-1}>
-                {messages}
-                {processing && (
-                  <ChatBubble from="SANTI">
-                    <p>
-                      <LoaderCircle className="inline-block SANTI-spin mr-2 h-4 w-4" aria-hidden /> Un momento, por favor...
-                    </p>
-                  </ChatBubble>
-                )}
-                <div ref={endRef} aria-hidden />
-              </div>
-            </ScrollArea>
+              <div className="text-xs text-muted-foreground">Demo UI — v1.4</div>
+            </div>
 
-            {/* Entrada de texto (opcional para demo); en producción, SANTI guía proactivamente */}
-            <div className="chat-input" role="group" aria-label="Entrada libre (demo)">
-              <Input
-                className="flex-1"
-                placeholder="Escriba un mensaje (demo)"
-                aria-label="Mensaje"
-                value={chatText}
-                onChange={(e) => setChatText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleTextSubmit(); }}
-              />
-              <Button className="SANTI-button-primary" onClick={handleTextSubmit} disabled={!chatText.trim()}>
-                Enviar
-              </Button>
+            <div className="chat-shell">
+              <ScrollArea className="chat-scroll" ref={scrollRef}>
+                <div className="chat-sticky-head" role="region" aria-label="Acciones rápidas">
+                  <div className="flex items-center gap-2 justify-center">
+                    <Button size="sm" variant="outline" onClick={openCollect} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
+                      <QrCode className="h-4 w-4 mr-2" /> Cobrar con QR <span className="brand-chip brand-codi ml-2">CoDI®</span>
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
+                      <Send className="h-4 w-4 mr-2" /> Transferir
+                    </Button>
+                    {dimoLinked && (
+                      <Button size="sm" variant="outline" onClick={() => { setShowNoFeeHint('dimo'); setTimeout(()=>setShowNoFeeHint(null), 1900); openDimoContactPicker(); }} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
+                        <Send className="h-4 w-4 mr-2" /> Enviar a contactos <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
+                      </Button>
+                    )}
+                  </div>
+                  {showNoFeeHint && (
+                    <div className="flex justify-center mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
+                  )}
+                </div>
+                <div id="main-content" ref={chatLogRef} className="pr-2" role="log" aria-live="polite" aria-relevant="additions" tabIndex={-1}>
+                  {messages}
+                  {processing && (
+                    <ChatBubble from="TAVI">
+                      <p>
+                        <LoaderCircle className="inline-block TAVI-spin mr-2 h-4 w-4" aria-hidden /> Un momento, por favor...
+                      </p>
+                    </ChatBubble>
+                  )}
+                  <div ref={endRef} aria-hidden />
+                </div>
+              </ScrollArea>
+
+              {/* Entrada de texto (demo) */}
+              <div className="chat-input" role="group" aria-label="Entrada libre (demo)">
+                <Input
+                  className="flex-1"
+                  placeholder="Escriba un mensaje (demo)"
+                  aria-label="Mensaje"
+                  value={chatText}
+                  onChange={(e) => setChatText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleTextSubmit(); }}
+                />
+                <Button className="TAVI-button-primary" onClick={handleTextSubmit} disabled={!chatText.trim()}>
+                  Enviar
+                </Button>
+              </div>
+            </div>
+
+            {/* Notas de cumplimiento + disclaimer */}
+            <div className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              <p>
+                Este prototipo aplica: reducción de carga cognitiva (Ley de Miller), simplificación de decisiones (Ley de Hick), visibilidad de estado del sistema y prevención de errores.
+              </p>
+              <p className="mt-1">Todo el contenido está redactado en lenguaje claro y formal, con etiquetas de accesibilidad.</p>
+              <p className="mt-2">
+                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="underline">Aviso de privacidad</a>
+              </p>
+              <p className="mt-1">Prototipo para hackatón: integra CoDI® y Dimo® sobre SPEI con fines demostrativos. No procesa operaciones reales. CoDI® y Dimo® son marcas de Banco de México.</p>
             </div>
           </div>
-
-          {/* Notas de cumplimiento */}
-          <div className="mt-3 text-xs text-muted-foreground leading-relaxed">
-            <p>
-              Este prototipo aplica: reducción de carga cognitiva (Ley de Miller), simplificación de decisiones (Ley de Hick),
-              visibilidad de estado del sistema y prevención de errores; además de la pantalla de confirmación prescriptiva con botón
-              primario <em>Compartir Comprobante</em> y jerarquía de acciones.
-            </p>
-            <p className="mt-1">Todo el contenido está redactado en lenguaje claro y formal, con etiquetas de accesibilidad.</p>
-            <p className="mt-2">
-              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="underline">
-                Aviso de privacidad
-              </a>
-            </p>
-          </div>
         </div>
-      </div>
+      )}
+
+      {/* Bottom nav */}
+      <BottomNav active={activeTab} onChange={(t) => setActiveTab(t)} />
 
       {showSuccessOverlay && (
         <div className="success-overlay" role="status" aria-live="assertive">
@@ -1293,17 +1309,6 @@ export default function SANTIPrototype() {
   );
 }
 
-// Icono CLABE (simple) para la demo
-function CreditCardIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-      <rect x="3" y="8" width="18" height="3" fill="currentColor"/>
-      <rect x="6" y="13" width="6" height="2" fill="currentColor"/>
-    </svg>
-  );
-}
-
 // =====================
 // Autopruebas (básicas)
 // =====================
@@ -1312,71 +1317,36 @@ type TestResult = { name: string; pass: boolean; details?: string };
 function runSelfTests(): TestResult[] {
   const results: TestResult[] = [];
 
-  // Test 1: genCEP genera 12 caracteres alfanuméricos mayúscula
   const cep = genCEP();
-  results.push({
-    name: "genCEP() genera 12 caracteres alfanuméricos",
-    pass: /^[A-Z0-9]{12}$/.test(cep),
-    details: cep,
-  });
+  results.push({ name: "genCEP() genera 12 caracteres alfanuméricos", pass: /^[A-Z0-9]{12}$/.test(cep), details: cep });
 
-  // Test 2: currency formatea en MXN y con símbolo $
   const formatted = currency(1000);
-  results.push({
-    name: "currency() formatea a MXN",
-    pass: typeof formatted === 'string' && formatted.includes('$'),
-    details: formatted,
-  });
+  results.push({ name: "currency() formatea a MXN", pass: typeof formatted === 'string' && formatted.includes('$'), details: formatted });
 
-  // Test 3: join con \n en comprobante no rompe cadenas (validación estática)
   const joined = ["A","B","C"].join("\n");
-  results.push({
-    name: "join('\\n') produce saltos de línea",
-    pass: joined.split("\n").length === 3,
-    details: joined.replace(/\n/g, "\\n"),
-  });
+  results.push({ name: "join('\\n') produce saltos de línea", pass: joined.split("\n").length === 3, details: joined.replace(/\n/g, "\\n") });
 
-  // Test 4: buildPaymentPayload incluye amount y concept correctos
   const p = buildPaymentPayload({ amount: 123.45, concept: "Tacos" });
   try {
     const pj = JSON.parse(p);
-    results.push({
-      name: "buildPaymentPayload() estructura válida",
-      pass: pj.amount === 123.45 && pj.currency === 'MXN' && pj.concept === 'Tacos' && typeof pj.deeplink === 'string',
-      details: pj.deeplink,
-    });
+    results.push({ name: "buildPaymentPayload() estructura válida", pass: pj.amount === 123.45 && pj.currency === 'MXN' && pj.concept === 'Tacos' && typeof pj.deeplink === 'string', details: pj.deeplink });
   } catch {
     results.push({ name: "buildPaymentPayload() estructura válida", pass: false, details: "JSON inválido" });
   }
 
-  // Test 5: genCEP produce valores distintos en llamadas consecutivas
   const cep2 = genCEP();
-  results.push({
-    name: "genCEP() produce valores distintos consecutivos",
-    pass: cep !== cep2,
-    details: `${cep} vs ${cep2}`,
-  });
+  results.push({ name: "genCEP() produce valores distintos consecutivos", pass: cep !== cep2, details: `${cep} vs ${cep2}` });
 
-  // Test 6: deeplink codifica espacios en el concepto
   const p2 = buildPaymentPayload({ amount: 50, concept: "Taxi CDMX" });
   try {
     const pj2 = JSON.parse(p2);
-    results.push({
-      name: "deeplink codifica concepto con espacios",
-      pass: typeof pj2.deeplink === 'string' && pj2.deeplink.includes('concept=Taxi%20CDMX'),
-      details: pj2.deeplink,
-    });
+    results.push({ name: "deeplink codifica concepto con espacios", pass: typeof pj2.deeplink === 'string' && pj2.deeplink.includes('concept=Taxi%20CDMX'), details: pj2.deeplink });
   } catch {
     results.push({ name: "deeplink codifica concepto con espacios", pass: false, details: "JSON inválido" });
   }
 
-  // Test 7: parser de monto ignora separadores de miles
   const parsed = Number(String("1,000.50").replace(/[^0-9.]/g, ""));
-  results.push({
-    name: "parser de monto ignora separadores",
-    pass: parsed === 1000.5,
-    details: String(parsed),
-  });
+  results.push({ name: "parser de monto ignora separadores", pass: parsed === 1000.5, details: String(parsed) });
 
   return results;
 }
@@ -1385,11 +1355,7 @@ function SelfTestPanel() {
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<TestResult[] | null>(null);
 
-  useEffect(() => {
-    if (open && !results) {
-      setResults(runSelfTests());
-    }
-  }, [open, results]);
+  useEffect(() => { if (open && !results) { setResults(runSelfTests()); } }, [open, results]);
 
   return (
     <Card className="mt-4" aria-label="Autopruebas del prototipo">
@@ -1406,7 +1372,7 @@ function SelfTestPanel() {
           <ul className="space-y-2 text-xs">
             {results?.map((r, i) => (
               <li key={i} className="flex items-start gap-2">
-                {r.pass ? <CheckCircle2 className="h-4 w-4 SANTI-success" aria-hidden /> : <AlertTriangle className="h-4 w-4 SANTI-warning" aria-hidden />}
+                {r.pass ? <CheckCircle2 className="h-4 w-4 TAVI-success" aria-hidden /> : <AlertTriangle className="h-4 w-4 TAVI-warning" aria-hidden />}
                 <div>
                   <div className="font-medium">{r.name}</div>
                   <div className="text-muted-foreground break-all">{r.details}</div>

@@ -1,1 +1,4 @@
+/* minimal app container tweaks for the demo */
+.App { min-height: 100vh; background: #f8fafc; }
+
 /* App.css - Limpiado para usar con Tailwind */

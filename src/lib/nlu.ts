@@ -10,6 +10,7 @@ export type Intent =
   | "share_qr"
   | "add_contact"
   | "help"
+  | "link_dimo"
   | "unknown";
 
 export type NLUResult = {
@@ -121,8 +122,8 @@ function regexInterpret(text: string): NLUResult {
     return { intent: "check_balance", recipient: null, amount: null, concept: null };
   }
 
-  // Collect/QR
-  if (/\b(cobrar|generar qr|mi qr|compartir qr)\b/.test(t)) {
+  // Collect/QR (incluye CoDI)
+  if (/\b(cobrar|generar\s*qr|mi\s*qr|compartir\s*qr|codi|qr\s*codi|código\s*codi)\b/.test(t)) {
     const amount = parseNumber(t);
     const conceptMatch = t.match(/por\s+([^\d]+)$/i) || t.match(/concepto\s+([^.]+)/i);
     const concept = conceptMatch ? conceptMatch[1].trim() : null;
@@ -134,6 +135,11 @@ function regexInterpret(text: string): NLUResult {
     const nameMatch = t.match(/contacto\s+(?:a\s+)?(.+)/);
     const recipient = nameMatch ? capitalize(nameMatch[1].trim()) : null;
     return { intent: "add_contact", recipient, amount: null, concept: null };
+  }
+
+  // Vincular Dimo®
+  if (/\b(vincular|enlazar|activar)\s+dimo\b/.test(t)) {
+    return { intent: "link_dimo", recipient: null, amount: null, concept: "dimo" };
   }
 
   // Send money
@@ -184,6 +190,8 @@ function fallbackReply(result: NLUResult, balance?: number): string {
       return "Claro, vamos a agregar un nuevo contacto.";
     case "help":
       return "Con gusto. Puedo ayudarle con lo siguiente:";
+    case "link_dimo":
+      return "De acuerdo, puedo ayudarle a vincular Dimo® y enviar a contactos.";
     default:
       return "No entendí. Puede intentar: 'transferir 200 a Ana' o 'mi saldo'.";
   }
