@@ -182,3 +182,8 @@ body {
     --ring: var(--savi-brand);
   }
 }
+
+/* Brand chips for CoDI® and Dimo® */
+.brand-chip { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:11px; line-height:1; border:1px solid hsl(var(--savi-border)); }
+.brand-codi { background:#F5FFFB; color:#0A7F5A; border-color:#BFEFE0; }
+.brand-dimo { background:#F5F7FF; color:#0D47A1; border-color:#D6E2FF; }
