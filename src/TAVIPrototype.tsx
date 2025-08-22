@@ -24,7 +24,7 @@ import {
 import { interpret, NLUResult, generateReply } from "@/lib/nlu";
 
 /**
- * SAVI® — Prototipo interactivo de UI conversacional para integrar dentro de una app bancaria.
+ * TAVI® — Prototipo interactivo de UI conversacional para integrar dentro de una app bancaria.
  *
  * Incluye:
  * - Autenticación por NIP (campo enmascarado, intentos, feedback) y Biometría (Huella/Face ID con animación y verificación).
@@ -100,31 +100,31 @@ const initialContacts = [
 // =====================
 // Componentes auxiliares reutilizables
 // =====================
-function AppTopBar({ onOpenSAVI }: { onOpenSAVI: () => void }) {
+function AppTopBar({ onOpenTAVI }: { onOpenTAVI: () => void }) {
   return (
     <div className="flex items-center justify-between p-4 border rounded-2xl bg-white shadow-sm" role="banner">
       <div className="flex items-center gap-3">
-        <img src="/logo192.png" alt="SAVI" className="h-6 w-6" />
+        <img src="/logo192.png" alt="TAVI" className="h-6 w-6" />
         <div className="text-sm leading-tight">
           <div className="font-semibold">{BANK_NAME}</div>
           <div className="text-xs text-muted-foreground">App bancaria — demo</div>
         </div>
       </div>
-      <Button className="savi-button-primary" onClick={onOpenSAVI} aria-label="Abrir SAVI, asistente de pagos">
-        <Send className="mr-2 h-4 w-4" /> Abrir SAVI
+      <Button className="TAVI-button-primary" onClick={onOpenTAVI} aria-label="Abrir TAVI, asistente de pagos">
+        <Send className="mr-2 h-4 w-4" /> Abrir TAVI
       </Button>
     </div>
   );
 }
 
-function ChatBubble({ from, children }: { from: "savi" | "user"; children: React.ReactNode }) {
-  const isSAVI = from === "savi";
+function ChatBubble({ from, children }: { from: "TAVI" | "user"; children: React.ReactNode }) {
+  const isTAVI = from === "TAVI";
   return (
-    <div className={`w-full flex ${isSAVI ? "justify-start" : "justify-end"} mb-2`}>
+    <div className={`w-full flex ${isTAVI ? "justify-start" : "justify-end"} mb-2`}>
       <div
-        className={`max-w-[85%] px-3 py-2 rounded-2xl text-[15px] leading-6 shadow-sm ${isSAVI ? "savi-chat-bubble-savi" : "savi-chat-bubble-user"}`}
+        className={`max-w-[85%] px-3 py-2 rounded-2xl text-[15px] leading-6 shadow-sm ${isTAVI ? "TAVI-chat-bubble-TAVI" : "TAVI-chat-bubble-user"}`}
         role="group"
-        aria-label={isSAVI ? "Mensaje de SAVI" : "Mensaje del usuario"}
+        aria-label={isTAVI ? "Mensaje de TAVI" : "Mensaje del usuario"}
       >
         {children}
       </div>
@@ -139,7 +139,7 @@ function QuickReplies({ options, onPick }: { options: { id: string; label: strin
         <button
           key={opt.id}
           type="button"
-          className="quick-reply savi-chip text-sm"
+          className="quick-reply TAVI-chip text-sm"
           onClick={() => onPick(opt.id)}
           aria-label={opt.label}
           onKeyDown={(e) => {
@@ -212,7 +212,7 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "amount-error" : undefined}
         />
-        <Button className="savi-button-primary" onClick={() => { const v = parseValue(); setTouched(true); if (v > 0) onConfirm(v); }} aria-label="Continuar" disabled={!(parseValue() > 0)}>
+        <Button className="TAVI-button-primary" onClick={() => { const v = parseValue(); setTouched(true); if (v > 0) onConfirm(v); }} aria-label="Continuar" disabled={!(parseValue() > 0)}>
           Continuar <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
@@ -221,7 +221,7 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
       )}
       <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Montos rápidos">
         {chips.map((v) => (
-          <button key={v} className="quick-reply savi-chip text-sm" onClick={() => { setLocal(v.toLocaleString("es-MX")); setTouched(true); setError(null); }} aria-label={`Seleccionar ${currency(v)}`}>
+          <button key={v} className="quick-reply TAVI-chip text-sm" onClick={() => { setLocal(v.toLocaleString("es-MX")); setTouched(true); setError(null); }} aria-label={`Seleccionar ${currency(v)}`}>
             {currency(v)}
           </button>
         ))}
@@ -269,7 +269,7 @@ function CollectQR({ onClose, initialAmount, initialConcept, autoGenerate }: { o
       <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="Datos de cobro">
         <Input placeholder="Monto" inputMode="decimal" value={amt} onChange={(e)=>setAmt(e.target.value)} aria-label="Monto a cobrar"/>
         <Input placeholder="Concepto (opcional)" value={conc} onChange={(e)=>setConc(e.target.value)} aria-label="Concepto"/>
-        <Button className="savi-button-primary" onClick={onGenerate} aria-label="Generar QR">Generar QR</Button>
+        <Button className="TAVI-button-primary" onClick={onGenerate} aria-label="Generar QR">Generar QR</Button>
       </div>
       {payload && (
         <Card className="mt-3">
@@ -294,7 +294,7 @@ function CollectQR({ onClose, initialAmount, initialConcept, autoGenerate }: { o
 }
 
 // =====================
-// SAVI Agent (conversación + flujos)
+// TAVI Agent (conversación + flujos)
 // =====================
 
 type Step =
@@ -310,8 +310,8 @@ type Step =
   | "success"
   | "error.insufficient";
 
-export default function SAVIPrototype() {
-  const [saviOpen, setSaviOpen] = useState(true);
+export default function TAVIPrototype() {
+  const [TAVIOpen, setTAVIOpen] = useState(true);
   const [step, setStep] = useState<Step>("welcome");
   const [messages, setMessages] = useState<React.ReactNode[]>([]);
 
@@ -370,9 +370,9 @@ export default function SAVIPrototype() {
   useEffect(() => {
     if (!initializedRef.current && messages.length === 0) {
       initializedRef.current = true;
-      pushSavi(
+      pushTAVI(
         <>
-          <p className="savi-text-strong">Bienvenido a SAVI, su asistente de pagos seguro.</p>
+          <p className="TAVI-text-strong">Bienvenido a TAVI, su asistente de pagos seguro.</p>
           <p>Para comenzar, necesito verificar su identidad.</p>
           <QuickReplies
             options={[
@@ -395,11 +395,11 @@ export default function SAVIPrototype() {
     }
   }, [messages.length]);
 
-  const pushSavi = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="savi">{node}</ChatBubble>]);
+  const pushTAVI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="TAVI">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
 
   const completeAuth = (mode: "NIP" | "Biometría") => {
-    pushSavi(
+    pushTAVI(
       <>
         <p>
           <Lock className="inline-block mr-1 h-4 w-4" aria-hidden /> Para su seguridad, autenticando con {mode.toLowerCase()}...
@@ -408,7 +408,7 @@ export default function SAVIPrototype() {
     );
     setTimeout(() => {
       setAuthed(true);
-      pushSavi(
+      pushTAVI(
         <>
           <p>Gracias. Su identidad ha sido verificada.</p>
           <p>¿Cómo puedo ayudarle hoy?</p>
@@ -433,7 +433,7 @@ export default function SAVIPrototype() {
 
   // === Autenticación: NIP ===
   const startPinAuth = () => {
-    pushSavi(
+    pushTAVI(
       <>
         <p>Ingrese su NIP de 4 dígitos.</p>
         <div className="mt-2 flex items-center gap-2" role="group" aria-label="Ingresar NIP">
@@ -447,7 +447,7 @@ export default function SAVIPrototype() {
             className="max-w-[120px] text-center tracking-[6px]"
             type="password"
           />
-          <Button className="savi-button-primary" onClick={verifyPin} aria-label="Confirmar NIP">
+          <Button className="TAVI-button-primary" onClick={verifyPin} aria-label="Confirmar NIP">
             Confirmar
           </Button>
         </div>
@@ -457,13 +457,13 @@ export default function SAVIPrototype() {
 
   const verifyPin = () => {
     if (pinInput === "1234") {
-      pushSavi(<p><CheckCircle2 className="inline mr-1 h-4 w-4 savi-success" aria-hidden/> NIP verificado.</p>);
+      pushTAVI(<p><CheckCircle2 className="inline mr-1 h-4 w-4 TAVI-success" aria-hidden/> NIP verificado.</p>);
       setPinAttempts(0);
       setPinInput("");
       completeAuth("NIP");
     } else {
       setPinAttempts((n) => n + 1);
-      pushSavi(
+      pushTAVI(
         <Alert className="mt-2" role="alert">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>NIP incorrecto</AlertTitle>
@@ -477,7 +477,7 @@ export default function SAVIPrototype() {
 
   // === Autenticación: Biometría ===
   const startBiometricChoice = () => {
-    pushSavi(
+    pushTAVI(
       <>
         <p>Seleccione el método biométrico:</p>
         <QuickReplies
@@ -495,17 +495,17 @@ export default function SAVIPrototype() {
   };
 
   const startBiometric = (mode: 'finger' | 'face') => {
-    pushSavi(
+    pushTAVI(
       <div className="flex items-center gap-3">
         <div className="p-3 rounded-full border pulse" aria-hidden>
-          {mode === 'finger' ? <Fingerprint className="h-8 w-8 savi-brand"/> : <ScanFace className="h-8 w-8 savi-brand"/>}
+          {mode === 'finger' ? <Fingerprint className="h-8 w-8 TAVI-brand"/> : <ScanFace className="h-8 w-8 TAVI-brand"/>}
         </div>
         <div>Coloque {mode === 'finger' ? 'su dedo en el lector' : 'su rostro frente a la cámara'}...</div>
       </div>
     );
     setTimeout(() => {
-      pushSavi(
-        <p><CheckCircle2 className="inline mr-1 h-4 w-4 savi-success" aria-hidden/> {mode === 'finger' ? 'Huella verificada' : 'Face ID verificado'}.</p>
+      pushTAVI(
+        <p><CheckCircle2 className="inline mr-1 h-4 w-4 TAVI-success" aria-hidden/> {mode === 'finger' ? 'Huella verificada' : 'Face ID verificado'}.</p>
       );
       completeAuth("Biometría");
     }, 1000);
@@ -513,7 +513,7 @@ export default function SAVIPrototype() {
 
   const openTransfer = () => {
     setStep("transfer.pickRecipient");
-    pushSavi(
+    pushTAVI(
       <>
         <p>¿A quién desea enviar dinero?</p>
         <QuickReplies
@@ -541,7 +541,7 @@ export default function SAVIPrototype() {
               pushUser(r.name);
               askAmount(r);
             } else {
-              pushSavi(<p>No encontré ese contacto. Intente con otro nombre o alias.</p>);
+              pushTAVI(<p>No encontré ese contacto. Intente con otro nombre o alias.</p>);
             }
           }} aria-label="Buscar">
             <Search className="h-4 w-4" />
@@ -556,8 +556,8 @@ export default function SAVIPrototype() {
             <Input placeholder="Alias" value={newAlias} onChange={(e)=>setNewAlias(e.target.value)} aria-label="Alias"/>
             <Input placeholder="Banco" value={newBank} onChange={(e)=>setNewBank(e.target.value)} aria-label="Banco"/>
             <div className="col-span-3 flex gap-2">
-              <Button className="savi-button-primary" onClick={() => {
-                if(!newName.trim() || !newAlias.trim() || !newBank.trim()){ pushSavi(<p>Complete nombre, alias y banco.</p>); return;}
+              <Button className="TAVI-button-primary" onClick={() => {
+                if(!newName.trim() || !newAlias.trim() || !newBank.trim()){ pushTAVI(<p>Complete nombre, alias y banco.</p>); return;}
                 const id = newName.toLowerCase().replace(/[^a-z0-9]+/g,'');
                 const rec = { id, name: newName.trim(), alias: newAlias.trim(), bank: newBank.trim() } as any;
                 setContacts((arr) => [...arr, rec]);
@@ -578,12 +578,12 @@ export default function SAVIPrototype() {
     );
 
     if (id === "menu.balance") {
-      pushSavi(<p className="savi-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
+      pushTAVI(<p className="TAVI-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
       return;
     }
 
     if (id === "menu.share") {
-      pushSavi(
+      pushTAVI(
         <>
           <CollectQR />
         </>
@@ -598,13 +598,13 @@ export default function SAVIPrototype() {
 
   const askAmount = (r: typeof contacts[number], initial?: number) => {
     setStep("transfer.amount");
-    pushSavi(
+    pushTAVI(
       <AmountSelector
         recipientName={r.name}
         initialValue={initial}
         onConfirm={(value) => {
           if (!recipient) setRecipient(r);
-          if (!value || value <= 0) { pushSavi(<p>Ingrese un monto válido mayor a $0.00 MXN.</p>); return; }
+          if (!value || value <= 0) { pushTAVI(<p>Ingrese un monto válido mayor a $0.00 MXN.</p>); return; }
           setAmount(String(value));
           askConcept(value);
         }}
@@ -619,7 +619,7 @@ export default function SAVIPrototype() {
       reviewAndConfirm(value);
     };
 
-    pushSavi(
+    pushTAVI(
       <>
         <p>¿Desea agregar un concepto de pago? (opcional)</p>
         <form onSubmit={handleSubmit} className="w-full">
@@ -638,7 +638,7 @@ export default function SAVIPrototype() {
               Omitir
             </Button>
             <Button 
-              className="savi-button-primary" 
+              className="TAVI-button-primary" 
               type="submit"
               aria-label="Continuar"
             >
@@ -652,11 +652,11 @@ export default function SAVIPrototype() {
 
   const reviewAndConfirm = (value: number) => {
     setStep("transfer.confirm");
-    pushSavi(
+    pushTAVI(
       <>
         <p className="mb-1">Por favor, confirme los datos de la transferencia:</p>
         <Card className="mt-2" aria-label="Resumen de la operación">
-          <CardContent className="pt-4 text-sm savi-mono">
+          <CardContent className="pt-4 text-sm TAVI-mono">
             <div className="grid grid-cols-2 gap-y-2">
               <div className="text-muted-foreground">Destinatario:</div>
               <div><strong>{recipient?.name}</strong></div>
@@ -672,10 +672,10 @@ export default function SAVIPrototype() {
           </CardContent>
         </Card>
         <div className="mt-3 flex items-center gap-2" role="group" aria-label="Autorizar o cancelar la operación">
-          <Button variant="outline" onClick={() => pushSavi(<p>Operación cancelada.</p>)} aria-label="Cancelar">
+          <Button variant="outline" onClick={() => pushTAVI(<p>Operación cancelada.</p>)} aria-label="Cancelar">
             <X className="mr-1 h-4 w-4" /> Cancelar
           </Button>
-          <Button className="savi-button-primary" onClick={() => authorize(value)} aria-label="Confirmar y Enviar">
+          <Button className="TAVI-button-primary" onClick={() => authorize(value)} aria-label="Confirmar y Enviar">
             Confirmar y Enviar <Send className="ml-1 h-4 w-4" />
           </Button>
         </div>
@@ -687,7 +687,7 @@ export default function SAVIPrototype() {
     // Validación de fondos insuficientes antes de autorizar
     if (balance < value) {
       setStep("error.insufficient");
-      pushSavi(
+      pushTAVI(
         <>
           <Alert className="mt-2" role="alert">
             <AlertTriangle className="h-4 w-4" />
@@ -698,10 +698,10 @@ export default function SAVIPrototype() {
           </Alert>
           <div className="mt-2 flex items-center gap-2" role="group" aria-label="Opciones ante fondos insuficientes">
             <Button
-              className="savi-button-primary"
+              className="TAVI-button-primary"
               onClick={() => {
                 const available = Math.max(0, Number(balance.toFixed(2)));
-                if (available <= 0) { pushSavi(<p>No cuenta con saldo disponible para enviar.</p>); return; }
+                if (available <= 0) { pushTAVI(<p>No cuenta con saldo disponible para enviar.</p>); return; }
                 pushUser("Enviar saldo disponible");
                 reviewAndConfirm(available);
               }}
@@ -722,7 +722,7 @@ export default function SAVIPrototype() {
             </Button>
             <Button
               variant="ghost"
-              onClick={() => { pushUser("Cancelar"); pushSavi(<p>Operación cancelada.</p>); }}
+              onClick={() => { pushUser("Cancelar"); pushTAVI(<p>Operación cancelada.</p>); }}
               aria-label="Cancelar"
             >
               Cancelar
@@ -734,7 +734,7 @@ export default function SAVIPrototype() {
     }
 
     if (!online) {
-      pushSavi(
+      pushTAVI(
         <Alert className="mt-2" role="alert">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Sin conexión</AlertTitle>
@@ -747,7 +747,7 @@ export default function SAVIPrototype() {
     }
 
     setStep("transfer.authorize");
-    pushSavi(
+    pushTAVI(
       <>
         <p>
           Para su seguridad, autorice la operación con su NIP.
@@ -758,7 +758,7 @@ export default function SAVIPrototype() {
     setTimeout(() => {
       const shouldFail = Math.random() < 0.25; // 25% de probabilidad de fallo
       if (shouldFail) {
-        pushSavi(
+        pushTAVI(
           <>
             <Alert variant="destructive" className="mt-2" role="alert">
               <AlertTriangle className="h-4 w-4" />
@@ -768,8 +768,8 @@ export default function SAVIPrototype() {
               </AlertDescription>
             </Alert>
             <div className="mt-2 flex items-center gap-2" role="group" aria-label="Opciones ante error de red">
-              <Button className="savi-button-primary" onClick={() => authorize(value)} aria-label="Reintentar">Reintentar</Button>
-              <Button variant="ghost" onClick={() => { pushUser("Cancelar"); pushSavi(<p>Operación cancelada.</p>); }} aria-label="Cancelar">Cancelar</Button>
+              <Button className="TAVI-button-primary" onClick={() => authorize(value)} aria-label="Reintentar">Reintentar</Button>
+              <Button variant="ghost" onClick={() => { pushUser("Cancelar"); pushTAVI(<p>Operación cancelada.</p>); }} aria-label="Cancelar">Cancelar</Button>
             </div>
           </>
         );
@@ -781,9 +781,9 @@ export default function SAVIPrototype() {
 
   const doProcess = (value: number) => {
     setStep("processing");
-    pushSavi(
+    pushTAVI(
       <p>
-        <LoaderCircle className="inline-block savi-spin mr-2 h-4 w-4" aria-hidden /> Procesando la transferencia de forma segura...
+        <LoaderCircle className="inline-block TAVI-spin mr-2 h-4 w-4" aria-hidden /> Procesando la transferencia de forma segura...
       </p>
     );
     setProcessing(true);
@@ -843,20 +843,20 @@ export default function SAVIPrototype() {
       URL.revokeObjectURL(url);
     };
 
-    pushSavi(
+    pushTAVI(
       <div className="mt-2" role="region" aria-label="Confirmación de transferencia">
         <Card className="shadow-md">
           <CardHeader className="pb-2">
-            <div className="savi-confirm-header">
+            <div className="TAVI-confirm-header">
               <div className="rounded-full bg-green-100 p-2" aria-hidden>
-                <CheckCircle2 className="h-6 w-6 savi-success" />
+                <CheckCircle2 className="h-6 w-6 TAVI-success" />
               </div>
               <CardTitle className="text-xl">Transferencia exitosa</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="savi-confirm-amount savi-mono">{currency(value)} MXN</div>
-            <div className="savi-kv text-sm savi-mono">
+            <div className="TAVI-confirm-amount TAVI-mono">{currency(value)} MXN</div>
+            <div className="TAVI-kv text-sm TAVI-mono">
               <div className="text-muted-foreground">Para:</div>
               <div><strong>{recipient?.name}</strong></div>
               <div className="text-muted-foreground">Fecha y Hora:</div>
@@ -871,7 +871,7 @@ export default function SAVIPrototype() {
             <Separator />
             <div className="flex items-center gap-2">
               {/* Botón Primario: Compartir Comprobante */}
-              <Button className="savi-button-primary" onClick={shareReceipt} aria-label="Compartir comprobante">
+              <Button className="TAVI-button-primary" onClick={shareReceipt} aria-label="Compartir comprobante">
                 <Share2 className="mr-2 h-4 w-4" /> Compartir Comprobante
               </Button>
               {/* Botón Secundario: Realizar otra operación */}
@@ -879,7 +879,7 @@ export default function SAVIPrototype() {
                 Realizar otra operación
               </Button>
               {/* Botón Terciario: Finalizar */}
-              <button className="underline text-sm" onClick={() => setSaviOpen(false)} aria-label="Finalizar y cerrar SAVI">
+              <button className="underline text-sm" onClick={() => setTAVIOpen(false)} aria-label="Finalizar y cerrar TAVI">
                 Finalizar
               </button>
             </div>
@@ -891,7 +891,7 @@ export default function SAVIPrototype() {
 
   const openCollect = () => {
     pushUser("Cobrar");
-    pushSavi(<CollectQR />);
+    pushTAVI(<CollectQR />);
   };
 
   const resetToWelcome = () => {
@@ -905,7 +905,7 @@ export default function SAVIPrototype() {
     setAuthed(true); // si ya se autenticó, mantenemos sesión
     // Re-hidratar conversación post-auth
     setTimeout(() => {
-      pushSavi(
+      pushTAVI(
         <>
           <p>¿Cómo puedo ayudarle hoy?</p>
           <QuickReplies
@@ -933,15 +933,15 @@ export default function SAVIPrototype() {
       case "check_balance":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSavi(<p>{ack}</p>);
-          pushSavi(<p className="savi-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(<p className="TAVI-mono">Su saldo actual es de <strong>{currency(balance)}</strong>.</p>);
         }
         return;
       case "collect":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSavi(<p>{ack}</p>);
-          pushSavi(
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(
             <CollectQR
               initialAmount={res.amount ?? undefined}
               initialConcept={res.concept ?? undefined}
@@ -953,8 +953,8 @@ export default function SAVIPrototype() {
       case "share_qr":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSavi(<p>{ack}</p>);
-          pushSavi(<CollectQR />);
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(<CollectQR />);
         }
         return;
       case "send_money": {
@@ -963,21 +963,21 @@ export default function SAVIPrototype() {
           if (r) {
             setRecipient(r);
             const ack = await generateReply({ userText, result: res, balance });
-            pushSavi(<p>{ack}</p>);
+            pushTAVI(<p>{ack}</p>);
             if (res.concept) setConcept(res.concept);
             askAmount(r, res.amount ?? undefined);
             return;
           }
         }
         const ack = await generateReply({ userText, result: res, balance });
-        pushSavi(<p>{ack}</p>);
+        pushTAVI(<p>{ack}</p>);
         openTransfer();
         return;
       }
       case "add_contact":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSavi(<p>{ack}</p>);
+          pushTAVI(<p>{ack}</p>);
         }
         openTransfer();
         setShowNewContact(true);
@@ -986,8 +986,8 @@ export default function SAVIPrototype() {
       case "help":
         {
           const ack = await generateReply({ userText, result: res, balance });
-          pushSavi(<p>{ack}</p>);
-          pushSavi(
+          pushTAVI(<p>{ack}</p>);
+          pushTAVI(
             <div>
               <p>Puedo ayudarle con:</p>
               <ul className="list-disc ml-5">
@@ -1001,7 +1001,7 @@ export default function SAVIPrototype() {
         return;
       default:
         const ack = await generateReply({ userText, result: res, balance });
-        pushSavi(<p>{ack}</p>);
+        pushTAVI(<p>{ack}</p>);
         return;
     }
   };
@@ -1015,7 +1015,7 @@ export default function SAVIPrototype() {
     if (!authed) {
       setPendingNLU(res);
       setStep("auth");
-      pushSavi(
+      pushTAVI(
         <>
           <p>Antes de continuar, autentíquese.</p>
           <QuickReplies
@@ -1043,11 +1043,11 @@ export default function SAVIPrototype() {
 
   // Render principal
   return (
-    <div className="demo-wrapper savi-surface" aria-live="polite">
+    <div className="demo-wrapper TAVI-surface" aria-live="polite">
       {/* Design tokens moved to src/index.css */}
 
       {/* Encabezado de la app bancaria */}
-      <AppTopBar onOpenSAVI={() => setSaviOpen(true)} />
+      <AppTopBar onOpenTAVI={() => setTAVIOpen(true)} />
 
       {!online && (
         <Alert variant="destructive" className="mt-3" role="alert">
@@ -1066,7 +1066,7 @@ export default function SAVIPrototype() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">Saldo disponible</div>
-            <div className="text-3xl font-extrabold savi-mono">{currency(balance)}</div>
+            <div className="text-3xl font-extrabold TAVI-mono">{currency(balance)}</div>
             <Separator />
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={openCollect} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
@@ -1080,7 +1080,7 @@ export default function SAVIPrototype() {
               <Lock className="h-4 w-4" />
               <AlertTitle>Seguridad</AlertTitle>
               <AlertDescription>
-                Sus operaciones con SAVI requieren autorización explícita (NIP o biometría).
+                Sus operaciones con TAVI requieren autorización explícita (NIP o biometría).
               </AlertDescription>
             </Alert>
 
@@ -1089,13 +1089,13 @@ export default function SAVIPrototype() {
           </CardContent>
         </Card>
 
-        {/* Panel derecho: Ventana de SAVI (chat + GUI) */}
+        {/* Panel derecho: Ventana de TAVI (chat + GUI) */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <img src="/logo192.png" alt="" aria-hidden className="h-5 w-5" />
               <div>
-                <div className="font-semibold">SAVI®</div>
+                <div className="font-semibold">TAVI®</div>
                 <div className="text-xs text-muted-foreground">Asistente de pagos seguro</div>
               </div>
             </div>
@@ -1117,9 +1117,9 @@ export default function SAVIPrototype() {
               <div id="main-content" ref={chatLogRef} className="pr-2" role="log" aria-live="polite" aria-relevant="additions" tabIndex={-1}>
                 {messages}
                 {processing && (
-                  <ChatBubble from="savi">
+                  <ChatBubble from="TAVI">
                     <p>
-                      <LoaderCircle className="inline-block savi-spin mr-2 h-4 w-4" aria-hidden /> Un momento, por favor...
+                      <LoaderCircle className="inline-block TAVI-spin mr-2 h-4 w-4" aria-hidden /> Un momento, por favor...
                     </p>
                   </ChatBubble>
                 )}
@@ -1127,7 +1127,7 @@ export default function SAVIPrototype() {
               </div>
             </ScrollArea>
 
-            {/* Entrada de texto (opcional para demo); en producción, SAVI guía proactivamente */}
+            {/* Entrada de texto (opcional para demo); en producción, TAVI guía proactivamente */}
             <div className="chat-input" role="group" aria-label="Entrada libre (demo)">
               <Input
                 className="flex-1"
@@ -1137,7 +1137,7 @@ export default function SAVIPrototype() {
                 onChange={(e) => setChatText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleTextSubmit(); }}
               />
-              <Button className="savi-button-primary" onClick={handleTextSubmit} disabled={!chatText.trim()}>
+              <Button className="TAVI-button-primary" onClick={handleTextSubmit} disabled={!chatText.trim()}>
                 Enviar
               </Button>
             </div>
@@ -1286,7 +1286,7 @@ function SelfTestPanel() {
           <ul className="space-y-2 text-xs">
             {results?.map((r, i) => (
               <li key={i} className="flex items-start gap-2">
-                {r.pass ? <CheckCircle2 className="h-4 w-4 savi-success" aria-hidden /> : <AlertTriangle className="h-4 w-4 savi-warning" aria-hidden />}
+                {r.pass ? <CheckCircle2 className="h-4 w-4 TAVI-success" aria-hidden /> : <AlertTriangle className="h-4 w-4 TAVI-warning" aria-hidden />}
                 <div>
                   <div className="font-medium">{r.name}</div>
                   <div className="text-muted-foreground break-all">{r.details}</div>

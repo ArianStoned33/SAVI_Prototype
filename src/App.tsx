@@ -1,11 +1,11 @@
 import React from 'react';
-import SAVIPrototype from './SAVIPrototype';
+import TAVIPrototype from './TAVIPrototype';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <SAVIPrototype />
+      <TAVIPrototype />
     </div>
   );
 }
