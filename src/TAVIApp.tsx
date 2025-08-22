@@ -17,15 +17,12 @@ import {
   LoaderCircle,
   Lock,
   QrCode,
-  Search,
   Send,
   Share2,
   X,
-  Plus,
   ScanFace,
   Home,
   CreditCard,
-  MessageSquare,
   Percent,
   Menu,
 } from "lucide-react";
@@ -222,7 +219,7 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
   };
 
   useEffect(() => {
-    const val = parseValue();
+    const val = Number(String(local).replace(/[^0-9.]/g, ""));
     if (touched) {
       if (!val || val <= 0) setError("Ingrese un monto mayor a $0.00 MXN.");
       else setError(null);
@@ -354,10 +351,9 @@ export default function TAVIApp() {
   // Estado de la operación
   const [authed, setAuthed] = useState(false);
   const [balance, setBalance] = useState(INITIAL_BALANCE);
-  const [contacts, setContacts] = useState(initialContacts);
+  const [contacts] = useState(initialContacts);
   const [concept, setConcept] = useState<string>("");
   const [recipient, setRecipient] = useState<typeof contacts[number] | null>(null);
-  const [search, setSearch] = useState("");
   const [processing, setProcessing] = useState(false);
   const [online, setOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
@@ -372,10 +368,6 @@ export default function TAVIApp() {
   // Auth
   const [pinInput, setPinInput] = useState("");
   const [pinAttempts, setPinAttempts] = useState(0);
-  const [showNewContact, setShowNewContact] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newAlias, setNewAlias] = useState("");
-  const [newBank, setNewBank] = useState("");
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
   const [chatText, setChatText] = useState("");
@@ -389,7 +381,6 @@ export default function TAVIApp() {
   const endRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
-  const isTaviOpen = activeTab === 'tavi';
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -438,7 +429,7 @@ export default function TAVIApp() {
         </>
       );
     }
-  }, [messages.length]);
+  }, [messages.length, startPinAuth, startBiometricChoice]);
 
   const pushTAVI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="TAVI">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
