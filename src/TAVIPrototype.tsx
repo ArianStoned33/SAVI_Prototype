@@ -193,7 +193,7 @@ function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipi
       if (!val || val <= 0) setError("Ingrese un monto mayor a $0.00 MXN.");
       else setError(null);
     }
-  }, [local, touched]);
+  }, [local, touched, parseValue]);
 
   return (
     <div>
@@ -311,7 +311,6 @@ type Step =
   | "error.insufficient";
 
 export default function TAVIPrototype() {
-  const [TAVIOpen, setTAVIOpen] = useState(true);
   const [step, setStep] = useState<Step>("welcome");
   const [messages, setMessages] = useState<React.ReactNode[]>([]);
 
@@ -322,8 +321,6 @@ export default function TAVIPrototype() {
   const [concept, setConcept] = useState<string>("");
   const [recipient, setRecipient] = useState<typeof contacts[number] | null>(null);
   const [search, setSearch] = useState("");
-  const [amount, setAmount] = useState<string>("");
-  const [cep, setCEP] = useState<string>("");
   const [processing, setProcessing] = useState(false);
   const [online, setOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
@@ -367,69 +364,8 @@ export default function TAVIPrototype() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!initializedRef.current && messages.length === 0) {
-      initializedRef.current = true;
-      pushTAVI(
-        <>
-          <p className="TAVI-text-strong">Bienvenido a TAVI, su asistente de pagos seguro.</p>
-          <p>Para comenzar, necesito verificar su identidad.</p>
-          <QuickReplies
-            options={[
-              { id: "auth.pin", label: "Ingresar NIP" },
-              { id: "auth.bio", label: "Usar biometría" },
-            ]}
-            onPick={(id) => {
-              setStep("auth");
-              if (id === "auth.pin") {
-                pushUser("Ingresar NIP");
-                startPinAuth();
-              } else {
-                pushUser("Usar biometría");
-                startBiometricChoice();
-              }
-            }}
-          />
-        </>
-      );
-    }
-  }, [messages.length]);
-
   const pushTAVI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="TAVI">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
-
-  const completeAuth = (mode: "NIP" | "Biometría") => {
-    pushTAVI(
-      <>
-        <p>
-          <Lock className="inline-block mr-1 h-4 w-4" aria-hidden /> Para su seguridad, autenticando con {mode.toLowerCase()}...
-        </p>
-      </>
-    );
-    setTimeout(() => {
-      setAuthed(true);
-      pushTAVI(
-        <>
-          <p>Gracias. Su identidad ha sido verificada.</p>
-          <p>¿Cómo puedo ayudarle hoy?</p>
-          <QuickReplies
-            options={[
-              { id: "menu.send", label: "Enviar dinero" },
-              { id: "menu.balance", label: "Consultar saldo" },
-              { id: "menu.share", label: "Mi CLABE / QR" },
-            ]}
-            onPick={handleMenu}
-          />
-        </>
-      );
-      setStep("menu");
-      if (pendingNLU) {
-        const toRun = pendingNLU;
-        setPendingNLU(null);
-        setTimeout(() => dispatchNLU(toRun), 300);
-      }
-    }, 700);
-  };
 
   // === Autenticación: NIP ===
   const startPinAuth = () => {
@@ -510,6 +446,67 @@ export default function TAVIPrototype() {
       completeAuth("Biometría");
     }, 1000);
   };
+
+  const completeAuth = (mode: "NIP" | "Biometría") => {
+    pushTAVI(
+      <>
+        <p>
+          <Lock className="inline-block mr-1 h-4 w-4" aria-hidden /> Para su seguridad, autenticando con {mode.toLowerCase()}...
+        </p>
+      </>
+    );
+    setTimeout(() => {
+      setAuthed(true);
+      pushTAVI(
+        <>
+          <p>Gracias. Su identidad ha sido verificada.</p>
+          <p>¿Cómo puedo ayudarle hoy?</p>
+          <QuickReplies
+            options={[
+              { id: "menu.send", label: "Enviar dinero" },
+              { id: "menu.balance", label: "Consultar saldo" },
+              { id: "menu.share", label: "Mi CLABE / QR" },
+            ]}
+            onPick={handleMenu}
+          />
+        </>
+      );
+      setStep("menu");
+      if (pendingNLU) {
+        const toRun = pendingNLU;
+        setPendingNLU(null);
+        setTimeout(() => dispatchNLU(toRun), 300);
+      }
+    }, 700);
+  };
+
+  useEffect(() => {
+    if (!initializedRef.current && messages.length === 0) {
+      initializedRef.current = true;
+      pushTAVI(
+        <>
+          <p className="TAVI-text-strong">Bienvenido a TAVI, su asistente de pagos seguro.</p>
+          <p>Para comenzar, necesito verificar su identidad.</p>
+          <QuickReplies
+            options={[
+              { id: "auth.pin", label: "Ingresar NIP" },
+              { id: "auth.bio", label: "Usar biometría" },
+            ]}
+            onPick={(id) => {
+              setStep("auth");
+              if (id === "auth.pin") {
+                pushUser("Ingresar NIP");
+                startPinAuth();
+              } else {
+                pushUser("Usar biometría");
+                startBiometricChoice();
+              }
+            }}
+          />
+        </>
+      );
+    }
+  }, [messages.length, pushUser, startBiometricChoice, startPinAuth]);
 
   const openTransfer = () => {
     setStep("transfer.pickRecipient");
@@ -605,7 +602,6 @@ export default function TAVIPrototype() {
         onConfirm={(value) => {
           if (!recipient) setRecipient(r);
           if (!value || value <= 0) { pushTAVI(<p>Ingrese un monto válido mayor a $0.00 MXN.</p>); return; }
-          setAmount(String(value));
           askConcept(value);
         }}
       />
@@ -791,7 +787,6 @@ export default function TAVIPrototype() {
       setProcessing(false);
       setBalance((b) => Math.max(0, b - value));
       const newCEP = genCEP();
-      setCEP(newCEP);
       setStep("success");
       // Sonido + overlay de éxito
       playSuccessTone();
@@ -879,7 +874,7 @@ export default function TAVIPrototype() {
                 Realizar otra operación
               </Button>
               {/* Botón Terciario: Finalizar */}
-              <button className="underline text-sm" onClick={() => setTAVIOpen(false)} aria-label="Finalizar y cerrar TAVI">
+              <button className="underline text-sm" onClick={() => resetToWelcome()} aria-label="Finalizar y cerrar TAVI">
                 Finalizar
               </button>
             </div>
@@ -898,9 +893,7 @@ export default function TAVIPrototype() {
     // Reinicia flujo conservando saldo actual
     setMessages([]);
     setRecipient(null);
-    setAmount("");
     setConcept("");
-    setCEP("");
     setStep("welcome");
     setAuthed(true); // si ya se autenticó, mantenemos sesión
     // Re-hidratar conversación post-auth
@@ -1047,7 +1040,7 @@ export default function TAVIPrototype() {
       {/* Design tokens moved to src/index.css */}
 
       {/* Encabezado de la app bancaria */}
-      <AppTopBar onOpenTAVI={() => setTAVIOpen(true)} />
+      <AppTopBar onOpenTAVI={() => {}} />
 
       {!online && (
         <Alert variant="destructive" className="mt-3" role="alert">
@@ -1170,17 +1163,6 @@ export default function TAVIPrototype() {
         </div>
       )}
     </div>
-  );
-}
-
-// Icono CLABE (simple) para la demo
-function CreditCardIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-      <rect x="3" y="8" width="18" height="3" fill="currentColor"/>
-      <rect x="6" y="13" width="6" height="2" fill="currentColor"/>
-    </svg>
   );
 }
 

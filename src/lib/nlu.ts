@@ -105,7 +105,7 @@ function parseNumber(raw: string | null | undefined): number | null {
     const n = Number(mil[1]);
     if (!isNaN(n)) return Math.round(n * 1000);
   }
-  const m = s.match(/(\d+(?:[\.,]\d+)?)/);
+  const m = s.match(/(\d+(?:[.,]\d+)?)/);
   if (m) {
     const n = Number(m[1].replace(/,/g, "."));
     return isNaN(n) ? null : n;
