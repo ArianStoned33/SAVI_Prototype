@@ -9,6 +9,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { QRCodeSVG } from "qrcode.react";
 
+// Home components
+import BalanceCard from "@/components/home/BalanceCard";
+import ActionGrid from "@/components/home/ActionGrid";
+import CardsCarousel from "@/components/home/CardsCarousel";
+import PendingList from "@/components/home/PendingList";
+import AmountModal from "@/components/home/AmountModal";
+import ClabeSheet from "@/components/home/ClabeSheet";
+
 import {
   AlertTriangle,
   CheckCircle2,
@@ -184,14 +192,17 @@ function BottomNav({ active, onChange }: { active: 'inicio'|'cuentas'|'beneficio
     <nav role="navigation" aria-label="Secciones" className="bn">
       <Item id="inicio" label="Inicio" Icon={Home} />
       <Item id="cuentas" label="Cuentas" Icon={CreditCard} />
-      <button
-        onClick={() => onChange('tavi')}
-        aria-label="TAVI®"
-        aria-current={active === 'tavi' ? 'page' : undefined}
-        className={`bn-fab ${active === 'tavi' ? 'bn-fab-active' : ''}`}
-      >
-        <img src="/favicon.svg" alt="" className="h-6 w-6" />
-      </button>
+      <div className="flex flex-col items-center gap-1">
+        <button
+          onClick={() => onChange('tavi')}
+          aria-label="TAVI®"
+          aria-current={active === 'tavi' ? 'page' : undefined}
+          className={`bn-fab ${active === 'tavi' ? 'bn-fab-active' : ''}`}
+        >
+          <img src="/favicon.svg" alt="" className="h-8 w-8" />
+        </button>
+        <span className="text-[11px] text-slate-600">TAVI®</span>
+      </div>
       <Item id="beneficios" label="Beneficios" Icon={Percent} />
       <Item id="mas" label="Más" Icon={Menu} />
     </nav>
@@ -376,6 +387,17 @@ export default function TAVIApp() {
   const [showNoFeeHint, setShowNoFeeHint] = useState<null | 'qr' | 'dimo'>(null);
   const [showDimoSuccessHint, setShowDimoSuccessHint] = useState(false);
 
+  // Home (Inicio) UI state
+  const [hideBalance, setHideBalance] = useState<boolean>(() => {
+    try { return JSON.parse(localStorage.getItem("tavi.hideBalance") || "false"); } catch { return false; }
+  });
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [clabeOpen, setClabeOpen] = useState(false);
+  const [payConfirmOpen, setPayConfirmOpen] = useState(false);
+  const [pendingAmount, setPendingAmount] = useState<number | null>(null);
+  const [homeHint, setHomeHint] = useState<string | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -429,7 +451,7 @@ export default function TAVIApp() {
         </>
       );
     }
-  }, [messages.length, startPinAuth, startBiometricChoice]);
+  }, [messages.length]);
 
   const pushTAVI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="TAVI">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
@@ -1017,8 +1039,6 @@ export default function TAVIApp() {
           pushTAVI(<p>{ack}</p>);
         }
         openTransfer();
-        setShowNewContact(true);
-        if (res.recipient) setNewName(res.recipient);
         return;
       case "help":
         {
@@ -1093,32 +1113,106 @@ export default function TAVIApp() {
       {/* Contenido según tab */}
       {activeTab !== 'tavi' ? (
         <div className="app-shell">
-          <Card className="h-fit" role="complementary" aria-label="Inicio del banco (mock)">
-            <CardHeader>
-              <CardTitle>{activeTab === 'inicio' ? 'Inicio — ' : activeTab === 'cuentas' ? 'Cuentas — ' : activeTab === 'beneficios' ? 'Beneficios — ' : activeTab === 'mas' ? 'Más — ' : ''}Banco Ejemplo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-sm text-muted-foreground">Accesos rápidos</div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline">Pix</Button>
-                <Button variant="outline">Transferencia</Button>
-                <Button variant="outline">Extractos</Button>
-                <Button variant="outline">Inversiones</Button>
+          {activeTab === 'inicio' ? (
+            <div className="space-y-3" role="main" aria-label="Inicio">
+              <BalanceCard
+                balance={balance}
+                hidden={hideBalance}
+                onToggle={() => {
+                  setHideBalance((h) => {
+                    const v = !h; try { localStorage.setItem("tavi.hideBalance", JSON.stringify(v)); } catch {}
+                    return v;
+                  });
+                }}
+              />
+              <div className="home-banner">
+                Ingrese $1,600 más para aumentar tus ganancias al 14% anual. 🔥
               </div>
-              <Separator />
-              <div className="grid grid-cols-2 gap-2">
-                <Button className="TAVI-button-primary" onClick={() => setActiveTab('tavi')} aria-label="Abrir TAVI">
-                  <Send className="mr-2 h-4 w-4" /> Abrir TAVI
-                </Button>
-                <Button variant="outline" onClick={() => { setShowNoFeeHint('qr'); setTimeout(()=>setShowNoFeeHint(null), 1900); }}>
-                  <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
-                </Button>
-              </div>
-              {showNoFeeHint === 'qr' && (
-                <div className="flex justify-start mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
+              <ActionGrid
+                onDeposit={() => setDepositOpen(true)}
+                onTransfer={() => { setActiveTab('tavi'); }}
+                onWithdraw={() => setWithdrawOpen(true)}
+                onOpenClabe={() => setClabeOpen(true)}
+              />
+              {showNoFeeHint && (
+                <div className="flex justify-start"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
               )}
-            </CardContent>
-          </Card>
+              <CardsCarousel hidden={hideBalance} />
+              <PendingList
+                canPay={balance >= 4723.77}
+                onPay={(amt) => { setPendingAmount(amt); setPayConfirmOpen(true); }}
+              />
+
+              {/* Modals */}
+              <AmountModal
+                open={depositOpen}
+                mode="deposit"
+                onClose={() => setDepositOpen(false)}
+                onConfirm={(amt) => { setBalance((b)=> b + amt); setHomeHint("Depósito aplicado"); setTimeout(()=>setHomeHint(null), 1800); }}
+              />
+              <AmountModal
+                open={withdrawOpen}
+                mode="withdraw"
+                max={balance}
+                onClose={() => setWithdrawOpen(false)}
+                onConfirm={(amt) => { setBalance((b)=> Math.max(0, b - amt)); setHomeHint("Retiro aplicado"); setTimeout(()=>setHomeHint(null), 1800); }}
+              />
+              <ClabeSheet
+                open={clabeOpen}
+                onClose={() => setClabeOpen(false)}
+                clabe="646180000000000000"
+                name="JUAN PEREZ"
+                phone="1234567890"
+              />
+
+              {payConfirmOpen && (
+                <>
+                  <div className="modal-backdrop" role="button" tabIndex={0} aria-label="Cerrar" onClick={() => setPayConfirmOpen(false)} onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setPayConfirmOpen(false); } }} />
+                  <div className="modal-window" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+                    <h3 id="pay-title" className="text-lg font-semibold">Confirmar pago</h3>
+                    <p className="text-sm text-muted-foreground mt-1">¿Desea pagar {pendingAmount != null ? pendingAmount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : ''}?</p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <Button className="TAVI-button-primary" onClick={() => {
+                        const amt = pendingAmount || 0;
+                        if (balance >= amt) { setBalance((b)=> b - amt); setHomeHint("Pago realizado"); setTimeout(()=>setHomeHint(null), 1800); }
+                        setPayConfirmOpen(false);
+                      }}>Pagar ahora</Button>
+                      <Button variant="outline" onClick={() => setPayConfirmOpen(false)}>Cancelar</Button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {homeHint && (<div className="flex justify-center"><div className="micro-hint micro-hint-success mt-2">{homeHint}</div></div>)}
+            </div>
+          ) : (
+            <Card className="h-fit" role="complementary" aria-label="Inicio del banco (mock)">
+              <CardHeader>
+                <CardTitle>{activeTab === 'cuentas' ? 'Cuentas — ' : activeTab === 'beneficios' ? 'Beneficios — ' : activeTab === 'mas' ? 'Más — ' : ''}Banco Ejemplo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm text-muted-foreground">Accesos rápidos</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline">Pix</Button>
+                  <Button variant="outline">Transferencia</Button>
+                  <Button variant="outline">Extractos</Button>
+                  <Button variant="outline">Inversiones</Button>
+                </div>
+                <Separator />
+                <div className="grid grid-cols-2 gap-2">
+                  <Button className="TAVI-button-primary" onClick={() => setActiveTab('tavi')} aria-label="Abrir TAVI">
+                    <Send className="mr-2 h-4 w-4" /> Abrir TAVI
+                  </Button>
+                  <Button variant="outline" onClick={() => { setShowNoFeeHint('qr'); setTimeout(()=>setShowNoFeeHint(null), 1900); }}>
+                    <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
+                  </Button>
+                </div>
+                {showNoFeeHint === 'qr' && (
+                  <div className="flex justify-start mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           <div />
         </div>
       ) : (
