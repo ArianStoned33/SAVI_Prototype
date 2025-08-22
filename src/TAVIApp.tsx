@@ -34,6 +34,8 @@ import {
   Percent,
   Menu,
 } from "lucide-react";
+import BottomNav from "@/components/navigation/BottomNav";
+import useHideOnScroll from "@/hooks/useHideOnScroll";
 import { interpret, NLUResult, generateReply } from "@/lib/nlu";
 
 /**
@@ -176,38 +178,6 @@ function QuickReplies({ options, onPick }: { options: { id: string; label: strin
   );
 }
 
-function BottomNav({ active, onChange }: { active: 'inicio'|'cuentas'|'beneficios'|'mas'|'tavi'; onChange: (t: 'inicio'|'cuentas'|'beneficios'|'mas'|'tavi') => void }) {
-  const Item = ({ id, label, Icon }: { id: 'inicio'|'cuentas'|'beneficios'|'mas', label: string, Icon: any }) => (
-    <button
-      onClick={() => onChange(id)}
-      aria-label={label}
-      aria-current={active === id ? 'page' : undefined}
-      className={`bn-item ${active === id ? 'bn-item-active' : ''}`}
-    >
-      <Icon className="h-5 w-5" />
-      <span>{label}</span>
-    </button>
-  );
-  return (
-    <nav role="navigation" aria-label="Secciones" className="bn">
-      <Item id="inicio" label="Inicio" Icon={Home} />
-      <Item id="cuentas" label="Cuentas" Icon={CreditCard} />
-      <div className="flex flex-col items-center gap-1">
-        <button
-          onClick={() => onChange('tavi')}
-          aria-label="TAVI®"
-          aria-current={active === 'tavi' ? 'page' : undefined}
-          className={`bn-fab ${active === 'tavi' ? 'bn-fab-active' : ''}`}
-        >
-          <img src="/favicon.svg" alt="" className="h-8 w-8" />
-        </button>
-        <span className="text-[11px] text-slate-600">TAVI®</span>
-      </div>
-      <Item id="beneficios" label="Beneficios" Icon={Percent} />
-      <Item id="mas" label="Más" Icon={Menu} />
-    </nav>
-  );
-}
 
 // Selector de monto con estado local
 function AmountSelector({ recipientName, initialValue = 0, onConfirm }: { recipientName?: string; initialValue?: number; onConfirm: (value: number) => void; }) {
@@ -1106,6 +1076,15 @@ export default function TAVIApp() {
   };
 
   // Render principal
+  const navHidden = useHideOnScroll({ threshold: 100 });
+  const [moreOpen, setMoreOpen] = useState(false);
+  const navItems = [
+    { id: 'inicio', label: 'Inicio', icon: <Home /> },
+    { id: 'cuentas', label: 'Cuentas', icon: <CreditCard /> },
+    { id: 'beneficios', label: 'Beneficios', icon: <Percent /> },
+    { id: 'mas', label: 'Más', icon: <Menu /> },
+  ] as const;
+
   return (
     <div className="demo-wrapper TAVI-surface" aria-live="polite">
       <AppTopBar onOpenTAVI={() => setActiveTab('tavi')} />
@@ -1332,7 +1311,35 @@ export default function TAVIApp() {
       )}
 
       {/* Bottom nav */}
-      <BottomNav active={activeTab} onChange={(t) => setActiveTab(t)} />
+      <BottomNav
+        items={navItems as any}
+        activeId={activeTab}
+        onChange={(id) => {
+          if (id === 'tavi') { setActiveTab('tavi'); return; }
+          if (id === 'mas') { setMoreOpen(true); return; }
+          setActiveTab(id as any);
+        }}
+        hasFab
+        fabIcon={<img src="/favicon.svg" alt="" className="h-8 w-8" />}
+        fabId="tavi"
+        fabLabel="TAVI®"
+        hidden={navHidden}
+      />
+
+      {/* Sheet overflow para "Más" */}
+      {moreOpen && (
+        <>
+          <div className="modal-backdrop" role="button" tabIndex={0} aria-label="Cerrar" onClick={() => setMoreOpen(false)} onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setMoreOpen(false); } }} />
+          <div className="modal-window sheet-window" role="dialog" aria-modal="true" aria-labelledby="more-title">
+            <h3 id="more-title" className="text-lg font-semibold">Más</h3>
+            <div className="mt-2 grid gap-2">
+              <button className="action-pill" onClick={()=> setMoreOpen(false)} aria-label="Configuración"><span className="text-sm">Configuración</span></button>
+              <button className="action-pill" onClick={()=> setMoreOpen(false)} aria-label="Ayuda"><span className="text-sm">Ayuda</span></button>
+              <button className="action-pill" onClick={()=> setMoreOpen(false)} aria-label="Historial"><span className="text-sm">Historial</span></button>
+            </div>
+          </div>
+        </>
+      )}
 
       {showSuccessOverlay && (
         <div className="success-overlay" role="status" aria-live="assertive">
