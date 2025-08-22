@@ -26,6 +26,8 @@ import {
   Home,
   CreditCard,
   MessageSquare,
+  Percent,
+  Menu,
 } from "lucide-react";
 import { interpret, NLUResult, generateReply } from "@/lib/nlu";
 
@@ -112,8 +114,8 @@ function AppTopBar({ onOpenTAVI }: { onOpenTAVI: () => void }) {
           <div className="text-xs text-muted-foreground">App bancaria — demo</div>
         </div>
       </div>
-      <Button className="TAVI-button-primary" onClick={onOpenTAVI} aria-label="Abrir TAVI, asistente de pagos">
-        <Send className="mr-2 h-4 w-4" /> Abrir TAVI
+      <Button className="TAVI-button-primary" onClick={onOpenTAVI} aria-label="Abrir TAVI®, asistente de pagos">
+        <img src="/favicon.svg" alt="" className="mr-2 h-4 w-4" /> Abrir TAVI®
       </Button>
     </div>
   );
@@ -169,24 +171,32 @@ function QuickReplies({ options, onPick }: { options: { id: string; label: strin
   );
 }
 
-function BottomNav({ active, onChange }: { active: 'inicio'|'cuentas'|'pagos'|'tavi'; onChange: (t: 'inicio'|'cuentas'|'pagos'|'tavi') => void }) {
-  const item = (id: 'inicio'|'cuentas'|'pagos'|'tavi', label: string, Icon: any) => (
+function BottomNav({ active, onChange }: { active: 'inicio'|'cuentas'|'beneficios'|'mas'|'tavi'; onChange: (t: 'inicio'|'cuentas'|'beneficios'|'mas'|'tavi') => void }) {
+  const Item = ({ id, label, Icon }: { id: 'inicio'|'cuentas'|'beneficios'|'mas', label: string, Icon: any }) => (
     <button
       onClick={() => onChange(id)}
       aria-label={label}
       aria-current={active === id ? 'page' : undefined}
-      className={`flex-1 py-2 px-3 text-sm flex items-center justify-center gap-2 border-t ${active === id ? 'text-slate-900 font-medium' : 'text-muted-foreground'}`}
+      className={`bn-item ${active === id ? 'bn-item-active' : ''}`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-5 w-5" />
       <span>{label}</span>
     </button>
   );
   return (
-    <nav role="navigation" aria-label="Secciones" className="mt-4 rounded-xl border bg-white shadow-sm flex">
-      {item('inicio', 'Inicio', Home)}
-      {item('cuentas', 'Cuentas', CreditCard)}
-      {item('pagos', 'Pagos', Send)}
-      {item('tavi', 'TAVI', MessageSquare)}
+    <nav role="navigation" aria-label="Secciones" className="bn">
+      <Item id="inicio" label="Inicio" Icon={Home} />
+      <Item id="cuentas" label="Cuentas" Icon={CreditCard} />
+      <button
+        onClick={() => onChange('tavi')}
+        aria-label="TAVI®"
+        aria-current={active === 'tavi' ? 'page' : undefined}
+        className={`bn-fab ${active === 'tavi' ? 'bn-fab-active' : ''}`}
+      >
+        <img src="/favicon.svg" alt="" className="h-6 w-6" />
+      </button>
+      <Item id="beneficios" label="Beneficios" Icon={Percent} />
+      <Item id="mas" label="Más" Icon={Menu} />
     </nav>
   );
 }
@@ -336,7 +346,7 @@ type Step =
 
 export default function TAVIApp() {
   // shell tabs
-  const [activeTab, setActiveTab] = useState<'inicio'|'cuentas'|'pagos'|'tavi'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio'|'cuentas'|'beneficios'|'mas'|'tavi'>('inicio');
 
   const [step, setStep] = useState<Step>("welcome");
   const [messages, setMessages] = useState<React.ReactNode[]>([]);
@@ -1094,7 +1104,7 @@ export default function TAVIApp() {
         <div className="app-shell">
           <Card className="h-fit" role="complementary" aria-label="Inicio del banco (mock)">
             <CardHeader>
-              <CardTitle>{activeTab === 'inicio' ? 'Inicio — ' : activeTab === 'cuentas' ? 'Cuentas — ' : 'Pagos — '}Banco Ejemplo</CardTitle>
+              <CardTitle>{activeTab === 'inicio' ? 'Inicio — ' : activeTab === 'cuentas' ? 'Cuentas — ' : activeTab === 'beneficios' ? 'Beneficios — ' : activeTab === 'mas' ? 'Más — ' : ''}Banco Ejemplo</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm text-muted-foreground">Accesos rápidos</div>
