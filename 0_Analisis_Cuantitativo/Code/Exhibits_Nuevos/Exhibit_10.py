@@ -1,68 +1,85 @@
-# Re-run the plotting code to generate the exhibit and save as PNG and SVG
-import matplotlib.pyplot as plt
 import numpy as np
-import os
+import matplotlib.pyplot as plt
 
-# Data
-pix_months = np.array([0, 6, 12, 24, 48])
+# === Toolkit de estilo “board-ready” ===
+import matplotlib.pyplot as plt
+
+PALETTE = {
+    "pix": "#FFC107",     # amarillo (Pix)
+    "mx": "#005B9A",      # azul (México: CoDi/DiMo)
+    "grid": "#D1D5DB",    # gris claro
+    "text": "#374151"     # gris texto
+}
+
+def apply_board_style(ax, title, xlabel, ylabel):
+    # Título y ejes
+    ax.set_title(title, fontsize=16, color=PALETTE["text"], pad=14)
+    ax.set_xlabel(xlabel, fontsize=14, color=PALETTE["text"], labelpad=8)
+    ax.set_ylabel(ylabel, fontsize=14, color=PALETTE["text"], labelpad=8)
+    ax.tick_params(axis='both', labelsize=12, colors=PALETTE["text"])
+    # Grid sutil
+    ax.grid(True, axis='both', linestyle='--', color=PALETTE["grid"], alpha=0.35)
+    # Limpiar bordes
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+def annotate_box(ax, text, xy, xytext, color, fontsize=11):
+    ax.annotate(
+        text, xy=xy, xytext=xytext,
+        arrowprops=dict(arrowstyle='->', color=color, lw=1.2),
+        bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=color, alpha=0.9),
+        fontsize=fontsize, color=color
+    )
+
+def export_fig(fig, filename_base, output_dir="output"):
+    """
+    Guarda la figura en formatos PNG y SVG en el directorio especificado.
+    """
+    import os
+    # Crear directorio de salida si no existe
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Ruta completa del archivo
+    base_path = os.path.join(output_dir, filename_base)
+    
+    # Guardar en ambos formatos
+    fig.tight_layout()
+    fig.savefig(f"{base_path}.png", dpi=300, bbox_inches="tight")
+    fig.savefig(f"{base_path}.svg", bbox_inches="tight")
+    print(f"Gráficos guardados en: {output_dir}/")
+
+
+# Datos (meses desde lanzamiento → usuarios activos en millones)
+pix_months  = np.array([0, 6, 12, 24, 48])
 pix_users_m = np.array([0, 67, 107, 133, 160.5])
 
-codi_months = np.array([0, 6, 48])
-codi_users_m = np.array([0, 0.11, 1.6])
+codi_months  = np.array([0, 6, 48])      # Sep-2019 → Mar-2020 (~6m) → Sep-2023 (~48m)
+codi_users_m = np.array([0, 0.11, 1.6])  # “≥1 pago” (proxy de usuario activo alguna vez)
 
-plt.figure(figsize=(12, 7), dpi=150)
+fig, ax = plt.subplots(figsize=(12, 7))
 
-plt.plot(pix_months, pix_users_m, marker='o', linewidth=3, color='#28A745', label='Pix (Brasil)')
-plt.plot(codi_months, codi_users_m, marker='o', linewidth=2.5, color='#005B9A', label='CoDi (México, ≥1 pago)')
+# Pix (línea protagonista)
+ax.plot(pix_months, pix_users_m, color=PALETTE["pix"], linewidth=3.5, marker='o', label="Pix (Brasil)")
 
-plt.title('Exhibit 10: Trayectorias de Adopción Divergentes – Usuarios Activos (en Millones) desde el Lanzamiento', pad=14)
-plt.xlabel('Meses desde el Lanzamiento')
-plt.ylabel('Usuarios Activos (Millones)')
-plt.xlim(0, 48)
-plt.ylim(0, 170)
-plt.xticks([0, 6, 12, 24, 36, 48])
-plt.grid(True, which='both', axis='both', linewidth=0.5, alpha=0.25)
+# México (serie secundaria)
+ax.plot(codi_months, codi_users_m, color=PALETTE["mx"], linewidth=2.5, marker='o', label="CoDi (México, ≥1 pago)")
 
-plt.annotate('~133 M en 24 meses', xy=(24, 133), xytext=(28, 120),
-             arrowprops=dict(arrowstyle='->', color='#28A745'),
-             fontsize=10, color='#28A745', bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='#28A745', alpha=0.8))
+# Estilo y ejes
+apply_board_style(
+    ax,
+    title="Trayectorias de adopción — Pix escala en meses; México no cruza 2 M en 4 años",
+    xlabel="Meses desde el lanzamiento",
+    ylabel="Usuarios activos (millones)"
+)
+ax.set_xlim(0, 48); ax.set_ylim(0, 170)
+ax.set_xticks([0, 6, 12, 24, 36, 48])
 
-plt.annotate('≈160.5 M en 48 meses', xy=(48, 160.5), xytext=(33, 150),
-             arrowprops=dict(arrowstyle='->', color='#28A745'),
-             fontsize=10, color='#28A745', bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='#28A745', alpha=0.8))
+# Anotaciones clave
+annotate_box(ax, "~133 M en 24 meses", xy=(24, 133), xytext=(28, 120), color=PALETTE["pix"])
+annotate_box(ax, "≈160.5 M en 48 meses", xy=(48, 160.5), xytext=(33, 150), color=PALETTE["pix"])
+annotate_box(ax, "~0.11 M (6 meses)\nCoDi con ≥1 pago", xy=(6, 0.11), xytext=(10, 5), color=PALETTE["mx"])
+annotate_box(ax, "≤1.6 M (48 meses)\nCoDi con ≥1 pago", xy=(48, 1.6), xytext=(30, 10), color=PALETTE["mx"])
 
-plt.annotate('~0.11 M (6 meses)\nCoDi con ≥1 pago', xy=(6, 0.11), xytext=(10, 5),
-             arrowprops=dict(arrowstyle='->', color='#005B9A'),
-             fontsize=10, color='#005B9A', bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='#005B9A', alpha=0.8))
+ax.legend(loc="upper left", fontsize=12)
 
-plt.annotate('≤1.6 M (48 meses)\nCoDi con ≥1 pago', xy=(48, 1.6), xytext=(30, 10),
-             arrowprops=dict(arrowstyle='->', color='#005B9A'),
-             fontsize=10, color='#005B9A', bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='#005B9A', alpha=0.8))
-
-footer1 = ("Brecha: Pix alcanza decenas de millones en 6–12 meses; "
-           "CoDi suma ≤1.6 M en 48 meses (usuarios con ≥1 pago).")
-plt.gcf().text(0.01, -0.10, footer1, fontsize=10, ha='left')
-
-footer2 = ("Fuente: BCB, Relatório de Gestão do Pix 2023 (Gráfico 3.3.1; texto pp.21–23); "
-           "FEBRABAN (nov-2024) sobre 160.5 M personas; "
-           "BBVA Research (ene-2024) con datos de Banxico sobre CoDi (18.6 M cuentas validadas; 1.6 M con ≥1 pago); "
-           "Banxico IAMF 2024 (pub. 2025) sobre DiMo.")
-plt.gcf().text(0.5, -0.16, footer2, fontsize=8, ha='center')
-
-plt.legend(loc='upper left')
-plt.tight_layout()
-
-# Construct absolute paths to ensure files are saved in the correct location
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
-results_dir = os.path.join(project_root, "0_Analisis_Cuantitativo", "Results", "Nuevos")
-
-# Create the directory if it doesn't exist
-os.makedirs(results_dir, exist_ok=True)
-
-png_path = os.path.join(results_dir, "Exhibit10_Trayectorias_Adopcion.png")
-svg_path = os.path.join(results_dir, "Exhibit10_Trayectorias_Adopcion.svg")
-plt.savefig(png_path, bbox_inches='tight')
-plt.savefig(svg_path, bbox_inches='tight')
-print(png_path)
-print(svg_path)
+export_fig(fig, "Exhibit_Adopcion_Trayectorias")
