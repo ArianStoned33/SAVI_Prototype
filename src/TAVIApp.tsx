@@ -546,7 +546,7 @@ export default function TAVIApp() {
     }, 1000);
   };
 
-  const openDimoLinkFlow = () => {
+  const openDimoLinkFlow = (autoOpenPicker?: boolean) => {
     pushUser("Vincular Dimo®");
     pushTAVI(
       <>
@@ -571,9 +571,12 @@ export default function TAVIApp() {
                 pushTAVI(
                   <>
                     <p><CheckCircle2 className="inline mr-1 h-4 w-4 TAVI-success" aria-hidden/> Dimo® vinculado correctamente.</p>
-                    <p>Ahora puede <strong>Enviar a contactos</strong> vía Dimo®.</p>
+                    <p>Ahora puede <strong>Transferir</strong> vía Dimo®.</p>
                   </>
                 );
+                if (autoOpenPicker) {
+                  setTimeout(() => openDimoContactPicker(), 300);
+                }
               }, 800);
             } else {
               pushUser("Después");
@@ -585,8 +588,8 @@ export default function TAVIApp() {
   };
 
   const openDimoContactPicker = () => {
-    if (!dimoLinked) { openDimoLinkFlow(); return; }
-    pushUser("Enviar a contactos (Dimo®)");
+    if (!dimoLinked) { openDimoLinkFlow(true); return; }
+    pushUser("Transferir (Dimo®)");
     pushTAVI(
       <>
         <p>Seleccione un contacto (mock):</p>
@@ -606,65 +609,15 @@ export default function TAVIApp() {
     );
   };
 
+  // Acción unificada de Transferir (Dimo®): si no está vinculado, inicia vinculación y abre el picker; si está, abre directamente
   const openTransfer = () => {
-    setStep("transfer.pickRecipient");
-    pushTAVI(
-      <>
-        <p>¿A quién desea enviar dinero?</p>
-        <QuickReplies
-          options={contacts.slice(0, 5).map((c) => ({ id: c.id, label: c.name }))}
-          onPick={(cid) => {
-            const r = contacts.find((c) => c.id === cid) || null;
-            if (r) {
-              setRecipient(r);
-              pushUser(r.name);
-              askAmount(r);
-            }
-          }}
-        />
-        <div className="mt-3 flex items-center gap-2" role="group" aria-label="Buscar otro contacto">
-          <Input
-            placeholder="Buscar otro contacto (alias, nombre)"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar contacto"
-          />
-          <Button variant="secondary" onClick={() => {
-            const r = contacts.find((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.alias.toLowerCase().includes(search.toLowerCase()));
-            if (r) {
-              setRecipient(r);
-              pushUser(r.name);
-              askAmount(r);
-            } else {
-              pushTAVI(<p>No encontré ese contacto. Intente con otro nombre o alias.</p>);
-            }
-          }} aria-label="Buscar">
-            <Search className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" onClick={() => setShowNewContact((s)=>!s)} aria-label="Nuevo contacto">
-            <Plus className="h-4 w-4 mr-1"/> Nuevo contacto
-          </Button>
-        </div>
-        {showNewContact && (
-          <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="Agregar nuevo contacto">
-            <Input placeholder="Nombre" value={newName} onChange={(e)=>setNewName(e.target.value)} aria-label="Nombre"/>
-            <Input placeholder="Alias" value={newAlias} onChange={(e)=>setNewAlias(e.target.value)} aria-label="Alias"/>
-            <Input placeholder="Banco" value={newBank} onChange={(e)=>setNewBank(e.target.value)} aria-label="Banco"/>
-            <div className="col-span-3 flex gap-2">
-              <Button className="TAVI-button-primary" onClick={() => {
-                if(!newName.trim() || !newAlias.trim() || !newBank.trim()){ pushTAVI(<p>Complete nombre, alias y banco.</p>); return;}
-                const id = newName.toLowerCase().replace(/[^a-z0-9]+/g,'');
-                const rec = { id, name: newName.trim(), alias: newAlias.trim(), bank: newBank.trim() } as any;
-                setContacts((arr) => [...arr, rec]);
-                setShowNewContact(false); setNewName(''); setNewAlias(''); setNewBank('');
-                setRecipient(rec); pushUser(rec.name); askAmount(rec);
-              }} aria-label="Guardar contacto">Guardar</Button>
-              <Button variant="outline" onClick={() => { setShowNewContact(false); }} aria-label="Cancelar">Cancelar</Button>
-            </div>
-          </div>
-        )}
-      </>
-    );
+    setShowNoFeeHint('dimo');
+    setTimeout(() => setShowNoFeeHint(null), 1900);
+    if (!dimoLinked) {
+      openDimoLinkFlow(true);
+    } else {
+      openDimoContactPicker();
+    }
   };
 
   const handleMenu = (id: string) => {
@@ -1181,15 +1134,10 @@ export default function TAVIApp() {
               {/* Dimo® action */}
               <div>
                 {!dimoLinked ? (
-                  <Button variant="outline" onClick={openDimoLinkFlow} aria-label="Vincular Dimo">
+                  <Button variant="outline" onClick={() => openDimoLinkFlow(true)} aria-label="Vincular Dimo">
                     Vincular Dimo®
                   </Button>
-                ) : (
-                  <Button variant="outline" onClick={() => { setShowNoFeeHint('dimo'); setTimeout(()=>setShowNoFeeHint(null), 1900); openDimoContactPicker(); }} aria-label="Enviar a contactos vía Dimo">
-                    <Send className="h-4 w-4 mr-2" /> Enviar a contactos
-                    <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
-                  </Button>
-                )}
+                ) : null}
                 {showDimoSuccessHint && (
                   <div className="mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-success">Transfiere sin comisión via Dimo®</div></div>
                 )}
@@ -1199,7 +1147,7 @@ export default function TAVIApp() {
                   <QrCode className="h-4 w-4 mr-2" /> Cobrar <span className="brand-chip brand-codi ml-2">CoDI®</span>
                 </Button>
                 <Button variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                  <Send className="h-4 w-4 mr-2" /> Transferir
+                  <Send className="h-4 w-4 mr-2" /> Transferir <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
                 </Button>
               </div>
               {showNoFeeHint && (
@@ -1237,13 +1185,8 @@ export default function TAVIApp() {
                       <QrCode className="h-4 w-4 mr-2" /> Cobrar con QR <span className="brand-chip brand-codi ml-2">CoDI®</span>
                     </Button>
                     <Button size="sm" variant="outline" onClick={openTransfer} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                      <Send className="h-4 w-4 mr-2" /> Transferir
+                      <Send className="h-4 w-4 mr-2" /> Transferir <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
                     </Button>
-                    {dimoLinked && (
-                      <Button size="sm" variant="outline" onClick={() => { setShowNoFeeHint('dimo'); setTimeout(()=>setShowNoFeeHint(null), 1900); openDimoContactPicker(); }} disabled={!online} aria-disabled={!online} title={!online ? "Sin conexión" : undefined}>
-                        <Send className="h-4 w-4 mr-2" /> Enviar a contactos <span className="brand-chip brand-dimo ml-2">via Dimo®</span>
-                      </Button>
-                    )}
                   </div>
                   {showNoFeeHint && (
                     <div className="flex justify-center mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
