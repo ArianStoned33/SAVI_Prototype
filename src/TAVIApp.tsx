@@ -16,6 +16,8 @@ import CardsCarousel from "@/components/home/CardsCarousel";
 import PendingList from "@/components/home/PendingList";
 import AmountModal from "@/components/home/AmountModal";
 import ClabeSheet from "@/components/home/ClabeSheet";
+import AccountsPanel from "@/components/sections/AccountsPanel";
+import BenefitsPanel from "@/components/sections/BenefitsPanel";
 
 import {
   AlertTriangle,
@@ -1165,23 +1167,17 @@ export default function TAVIApp() {
               {homeHint && (<div className="flex justify-center"><div className="micro-hint micro-hint-success mt-2">{homeHint}</div></div>)}
             </div>
           ) : (
-            <Card className="h-fit" role="complementary" aria-label="Inicio del banco (mock)">
-              <CardHeader>
-                <CardTitle>{activeTab === 'cuentas' ? 'Cuentas — ' : activeTab === 'beneficios' ? 'Beneficios — ' : activeTab === 'mas' ? 'Más — ' : ''}Banco Ejemplo</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+            activeTab === 'cuentas' ? (
+              <AccountsPanel
+                balance={balance}
+                onTransfer={() => setActiveTab('tavi')}
+                onDownloadStatement={() => {
+                  const text = `Estado de cuenta\nSaldo actual: ${balance.toLocaleString('es-MX',{style:'currency',currency:              <CardContent className="space-y-3">
                 <div className="text-sm text-muted-foreground">Accesos rápidos</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline">Pix</Button>
-                  <Button variant="outline">Transferencia</Button>
-                  <Button variant="outline">Extractos</Button>
-                  <Button variant="outline">Inversiones</Button>
-                </div>
-                <Separator />
-                <div className="grid grid-cols-2 gap-2">
-                  <Button className="TAVI-button-primary" onClick={() => setActiveTab('tavi')} aria-label="Abrir TAVI">
-                    <Send className="mr-2 h-4 w-4" /> Abrir TAVI
-                  </Button>
+                  <Button variant="outline" onClick={() => setActiveTab('cuentas')}>Cuentas</Button>
+                  <Button variant="outline" onClick={() => setActiveTab('beneficios')}>Beneficios</Button>
+                  <Button variant="outline" onClick={() => setActiveTab('tavi')}>TAVI®</Button>
                   <Button variant="outline" onClick={() => { setShowNoFeeHint('qr'); setTimeout(()=>setShowNoFeeHint(null), 1900); }}>
                     <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
                   </Button>
@@ -1191,6 +1187,16 @@ export default function TAVIApp() {
                 )}
               </CardContent>
             </Card>
+              <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
+                      </Button>
+                    </div>
+                    {showNoFeeHint === 'qr' && (
+                      <div className="flex justify-start mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            )
           )}
           <div />
         </div>
