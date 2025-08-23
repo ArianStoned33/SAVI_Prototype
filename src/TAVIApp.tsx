@@ -423,7 +423,9 @@ export default function TAVIApp() {
         </>
       );
     }
-  }, [messages.length, startPinAuth, startBiometricChoice]);
+    // Mantener este efecto estable: solo depende de messages.length para inicializar la conversación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
 
   const pushTAVI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="TAVI">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
