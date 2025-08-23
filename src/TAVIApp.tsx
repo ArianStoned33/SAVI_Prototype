@@ -1172,22 +1172,29 @@ export default function TAVIApp() {
                 balance={balance}
                 onTransfer={() => setActiveTab('tavi')}
                 onDownloadStatement={() => {
-                  const text = `Estado de cuenta\nSaldo actual: ${balance.toLocaleString('es-MX',{style:'currency',currency:              <CardContent className="space-y-3">
-                <div className="text-sm text-muted-foreground">Accesos rápidos</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={() => setActiveTab('cuentas')}>Cuentas</Button>
-                  <Button variant="outline" onClick={() => setActiveTab('beneficios')}>Beneficios</Button>
-                  <Button variant="outline" onClick={() => setActiveTab('tavi')}>TAVI®</Button>
-                  <Button variant="outline" onClick={() => { setShowNoFeeHint('qr'); setTimeout(()=>setShowNoFeeHint(null), 1900); }}>
-                    <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
-                  </Button>
-                </div>
-                {showNoFeeHint === 'qr' && (
-                  <div className="flex justify-start mt-2"><div role="status" aria-live="polite" className="micro-hint micro-hint-neutral">Sin comisión</div></div>
-                )}
-              </CardContent>
-            </Card>
-              <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
+                  const text = `Estado de cuenta\nSaldo actual: ${balance.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}`;
+                  const blob = new Blob([text], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = 'Estado_de_cuenta.txt'; a.click(); URL.revokeObjectURL(url);
+                }}
+              />
+            ) : (
+              activeTab === 'beneficios' ? (
+                <BenefitsPanel />
+              ) : (
+                <Card className="h-fit" role="complementary" aria-label="Inicio del banco (mock)">
+                  <CardHeader>
+                    <CardTitle>Más — Banco Ejemplo</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm text-muted-foreground">Accesos rápidos</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" onClick={() => setActiveTab('cuentas')}>Cuentas</Button>
+                      <Button variant="outline" onClick={() => setActiveTab('beneficios')}>Beneficios</Button>
+                      <Button variant="outline" onClick={() => setActiveTab('tavi')}>TAVI®</Button>
+                      <Button variant="outline" onClick={() => { setShowNoFeeHint('qr'); setTimeout(()=>setShowNoFeeHint(null), 1900); }}>
+                        <QrCode className="h-4 w-4 mr-2" /> Cobros <span className="brand-chip brand-codi ml-2">CoDI®</span>
                       </Button>
                     </div>
                     {showNoFeeHint === 'qr' && (
@@ -1198,7 +1205,6 @@ export default function TAVIApp() {
               )
             )
           )}
-          <div />
         </div>
       ) : (
         <div className="app-shell">
