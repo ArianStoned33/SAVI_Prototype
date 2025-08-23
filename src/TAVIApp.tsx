@@ -423,7 +423,7 @@ export default function TAVIApp() {
         </>
       );
     }
-  }, [messages.length]);
+  }, [messages.length, startPinAuth, startBiometricChoice]);
 
   const pushTAVI = (node: React.ReactNode) => setMessages((m) => [...m, <ChatBubble from="TAVI">{node}</ChatBubble>]);
   const pushUser = (text: string) => setMessages((m) => [...m, <ChatBubble from="user">{text}</ChatBubble>]);
@@ -1332,7 +1332,7 @@ export default function TAVIApp() {
           setActiveTab(id as any);
         }}
         hasFab
-        fabIcon={<img src="/favicon.svg" alt="" className="h-8 w-8" />}
+        fabIcon={<img src="/favicon.svg" alt="" className="tavi-fab-logo" />}
         fabId="tavi"
         fabLabel="TAVI®"
         hidden={navHidden}

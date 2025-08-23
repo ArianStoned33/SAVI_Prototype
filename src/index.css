@@ -203,6 +203,9 @@ body {
 .bn-fab:focus-visible { outline: none; box-shadow: 0 0 0 2px hsl(var(--ring)); }
 .bn-fab-active { outline: 2px solid #94a3b8; outline-offset: 2px; }
 
+/* Solo el logo central de TAVI dentro del FAB: que llene el círculo */
+.bn-fab .tavi-fab-logo { width: calc(var(--bn-fab-size) * 0.55); height: calc(var(--bn-fab-size) * 0.55); }
+
 @media (prefers-reduced-motion: reduce) {
   .bn, .bn-item, .bn-fab { transition: none !important; transform: none !important; }
 }
